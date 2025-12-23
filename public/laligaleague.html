@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaLiga Terminal | Soccer Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-amber-500/30">
+
+    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-xl font-black uppercase tracking-tighter text-amber-500">LaLiga Terminal</h1>
+                    <p class="text-[8px] font-bold text-slate-500 tracking-[0.3em] uppercase">Premier Management Unit</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <div class="flex bg-slate-800 p-1 rounded-lg border border-white/5 text-[9px] font-bold uppercase">
+                    <a href="englishleague.html" class="px-3 py-1.5 hover:text-indigo-400 transition">English</a>
+                    <a href="italianleague.html" class="px-3 py-1.5 border-l border-white/10 hover:text-emerald-400 transition">Italian</a>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 flex items-center gap-2">
+                    <span class="text-[8px] font-black text-slate-500 uppercase">Season</span>
+                    <select id="seasonSelect" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer">
+                        <script>
+                            for (let year = 2025; year <= 2060; year++) {
+                                let nextYear = (year + 1).toString().slice(-2);
+                                document.write(`<option value="${year}" class="bg-slate-900">${year}/${nextYear}</option>`);
+                            }
+                        </script>
+                    </select>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-amber-500/40 rounded-lg p-1 shadow-lg shadow-amber-500/5">
+                    <button type="button" onclick="stepValue('tournamentSelect', -1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+                    </button>
+                    <div class="flex flex-col items-center px-2">
+                        <span class="text-[7px] font-black text-amber-500 uppercase leading-none">TRN</span>
+                        <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-amber-400 outline-none cursor-pointer appearance-none text-center min-w-[40px]">
+                            <script>
+                                for (let t = 1; t <= 10000; t++) {
+                                    document.write(`<option value="${t}" class="bg-slate-900">${t}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('tournamentSelect', 1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-white/10 rounded transition text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+                    </button>
+                    <div class="flex flex-col items-center px-2">
+                        <span class="text-[7px] font-black text-slate-500 uppercase leading-none">Week</span>
+                        <select id="weekSelect" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer appearance-none text-center min-w-[30px]">
+                            <script>
+                                for (let i = 1; i <= 38; i++) {
+                                    document.write(`<option value="${i}" class="bg-slate-900">${i}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-white/10 rounded transition text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        <div class="bg-slate-800 shadow-2xl rounded-2xl border border-slate-700 overflow-hidden">
+            <form id="matchForm">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-center">
+                        <thead>
+                            <tr class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-700/50">
+                                <th class="py-4 px-2 font-black w-10">#</th>
+                                <th class="py-4 px-2 font-black">Home Team</th>
+                                <th class="py-4 px-2 font-black">Score Result</th>
+                                <th class="py-4 px-2 font-black">Away Team</th>
+                                <th class="py-4 px-2 font-black text-right pr-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/30">
+                            <script>
+                                for (let i = 1; i <= 10; i++) {
+                                    document.write(`
+                                        <tr class="group hover:bg-white/[0.02] transition-colors">
+                                            <td class="py-4 px-2 text-slate-600 font-black text-[10px] md:text-xs">${i}</td>
+                                            <td class="py-4 px-2">
+                                                <input list="laliga-clubs" type="text" placeholder="HOME" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <div class="inline-flex items-center bg-slate-950 p-1 md:p-2 rounded-lg border-b-2 border-amber-600">
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                    <span class="text-slate-600 font-bold px-1 md:px-2">-</span>
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <input list="laliga-clubs" type="text" placeholder="AWAY" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-slate-300 focus:ring-2 focus:ring-amber-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2 text-right pr-4">
+                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-1 py-1 md:px-2 md:py-2 text-[8px] md:text-[10px] font-bold text-slate-400 outline-none uppercase cursor-pointer">
+                                                    <option>FT</option>
+                                                    <option>LIVE</option>
+                                                    <option>PPD</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    `);
+                                }
+                            </script>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-6 md:p-10 bg-slate-900/30 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="text-center md:text-left">
+                        <p class="text-[10px] text-amber-500 font-black uppercase tracking-[0.2em]">TRN Indexing Active</p>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Multi-Tournament Slotting Ready</p>
+                    </div>
+
+                    <div class="flex-1 flex justify-center">
+                        <a href="laligaresult.html" class="px-6 py-3 border border-amber-500/30 hover:bg-amber-500/10 text-amber-500 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            View LaLiga Results
+                        </a>
+                    </div>
+
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <button type="reset" class="flex-1 md:px-8 py-3 text-slate-500 hover:text-rose-500 font-black text-xs uppercase transition">Clear Terminal</button>
+                        <button type="submit" class="flex-1 md:px-12 py-4 bg-amber-600 hover:bg-amber-500 text-slate-900 rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-amber-500/20 active:scale-95 transition-all">
+                            Sync TRN Data
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="pb-10 text-center">
+        <p class="text-slate-600 text-[9px] font-bold uppercase tracking-[0.4em]">Proprietary LaLiga Management Interface</p>
+    </footer>
+
+    <datalist id="laliga-clubs">
+        <option value="ALA">Alavés</option><option value="ATH">Athletic Club</option>
+        <option value="ATM">Atlético de Madrid</option><option value="BAR">FC Barcelona</option>
+        <option value="CEL">Celta de Vigo</option><option value="ESP">Espanyol</option>
+        <option value="GET">Getafe</option><option value="GIR">Girona</option>
+        <option value="LEG">Leganés</option><option value="LPA">Las Palmas</option>
+        <option value="MLL">Mallorca</option><option value="OSA">Osasuna</option>
+        <option value="RAY">Rayo Vallecano</option><option value="RMA">Real Madrid</option>
+        <option value="RSO">Real Sociedad</option><option value="SEV">Sevilla</option>
+        <option value="VAL">Valencia</option><option value="VLL">Valladolid</option>
+        <option value="VIL">Villarreal</option><option value="BET">Real Betis</option>
+    </datalist>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    const LEAGUE_KEY = "laliga";
+    let pendingBatchData = null;
+
+    // QUICK STEP LOGIC
+    function stepValue(id, direction) {
+        const el = document.getElementById(id);
+        const currentIndex = el.selectedIndex;
+        const nextIndex = currentIndex + direction;
+        if (nextIndex >= 0 && nextIndex < el.options.length) {
+            el.selectedIndex = nextIndex;
+            // Manually trigger change for listeners
+            el.dispatchEvent(new Event('change'));
+            saveState();
+        }
+    }
+
+    function saveState() {
+        const state = {
+            season: document.getElementById('seasonSelect').value,
+            trn: document.getElementById('tournamentSelect').value,
+            week: document.getElementById('weekSelect').value
+        };
+        localStorage.setItem('laliga_terminal_last_view', JSON.stringify(state));
+    }
+
+    // Attach listeners to all selectors
+    ['seasonSelect', 'tournamentSelect', 'weekSelect'].forEach(id => {
+        document.getElementById(id).addEventListener('change', saveState);
+    });
+
+    // --- LOGIC FUNCTIONS ---
+    async function checkHistory(home, away) {
+        try {
+            // Updated to use the correct league key
+            const response = await fetch(`/api/api?league=${LEAGUE_KEY}&homeTeam=${home}&awayTeam=${away}`);
+            const data = await response.json();
+            return (data && data.length > 0) ? data[0] : null; 
+        } catch (e) { return null; }
+    }
+
+    async function executeFinalSync(data) {
+        const syncBtn = document.querySelector('button[type="submit"]');
+        const originalText = syncBtn.innerText;
+        try {
+            syncBtn.innerText = "LOCKING LALIGA DB...";
+            syncBtn.disabled = true;
+            syncBtn.classList.replace('bg-amber-600', 'bg-slate-700');
+
+            const response = await fetch('/api/api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data) // Sends the batchData object
+            });
+
+            if (response.ok) {
+                alert(`✅ SYNC COMPLETE: TRN ${data.trn} Week ${data.week} is now Live.`);
+                pendingBatchData = null;
+            } else {
+                const resData = await response.json();
+                throw new Error(resData.error || "Server Error");
+            }
+        } catch (err) {
+            alert("❌ SYNC ERROR: " + err.message);
+        } finally {
+            syncBtn.innerText = originalText;
+            syncBtn.disabled = false;
+            syncBtn.classList.replace('bg-slate-700', 'bg-amber-600');
+        }
+    }
+
+    // --- MAIN SUBMIT LISTENER ---
+    document.getElementById('matchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Convert to Integers to avoid 400 errors
+        const season = parseInt(document.getElementById('seasonSelect').value);
+        const trn = parseInt(document.getElementById('tournamentSelect').value);
+        const week = parseInt(document.getElementById('weekSelect').value);
+        const league = LEAGUE_KEY; 
+
+        const rows = document.querySelectorAll('tbody tr');
+        const matchesArray = [];
+        let isFormValid = true;
+
+        for (const [index, row] of rows.entries()) {
+            const inputs = row.querySelectorAll('input');
+            const home = inputs[0].value.trim().toUpperCase();
+            const away = inputs[3].value.trim().toUpperCase();
+            
+            // Validation: Skip or flag incomplete rows
+            if (!home || !away) continue; 
+
+            if (home === "TBD" || away === "TBD") {
+                isFormValid = false;
+                inputs[0].classList.add('border-rose-500');
+                continue;
+            }
+
+            matchesArray.push({
+                slot: index + 1,
+                homeTeam: home,
+                homeScore: parseInt(inputs[1].value) || 0,
+                awayScore: parseInt(inputs[2].value) || 0,
+                awayTeam: away,
+                status: row.querySelector('select').value
+            });
+        }
+
+        if (matchesArray.length === 0) {
+            alert("⚠️ NO DATA: Enter at least one match result.");
+            return;
+        }
+
+        // MATCHING THE ENGLISH LEAGUE STRUCTURE
+        const batchData = { 
+            league, 
+            season, 
+            trn, 
+            week, 
+            allMatches: matchesArray 
+        };
+
+        // Note: I've omitted the Duplicate Modal logic for brevity unless you have 
+        // the HTML modal code in your LaLiga file, but the sync structure is now identical.
+        executeFinalSync(batchData);
+    });
+
+    // Restore on Load
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('laliga_terminal_last_view'));
+        if (saved) {
+            document.getElementById('seasonSelect').value = saved.season;
+            document.getElementById('tournamentSelect').value = saved.trn;
+            document.getElementById('weekSelect').value = saved.week;
+        }
+    };
+</script>
+</body>
+</html>

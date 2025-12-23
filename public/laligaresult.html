@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Liga Results | Soccer Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-amber-500/30">
+
+    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="laligaleague.html" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-xl font-black uppercase tracking-tighter text-amber-400">La Liga Results</h1>
+                    <p class="text-[8px] font-bold text-slate-500 tracking-[0.3em] uppercase">Historical Data Access</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-center gap-2">
+                <div class="bg-slate-950 px-3 py-1 rounded-lg border border-slate-700">
+                    <label class="block text-[7px] font-black uppercase text-slate-500 mb-0.5">Season</label>
+                    <select id="seasonSelect" onchange="triggerFetch()" class="bg-transparent text-white text-xs font-black outline-none cursor-pointer">
+                        <script>
+                            for (let year = 2025; year <= 2060; year++) {
+                                let nextYear = (year + 1).toString().slice(-2);
+                                document.write(`<option value="${year}" class="bg-slate-900">${year}/${nextYear}</option>`);
+                            }
+                        </script>
+                    </select>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-rose-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('trnSelect', -1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <label class="text-[7px] font-black text-rose-500 uppercase leading-none">TRN</label>
+                        <select id="trnSelect" onchange="triggerFetch()" class="bg-transparent text-rose-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[40px]">
+                            <script>for (let t = 1; t <= 10000; t++) document.write(`<option value="${t}" class="bg-slate-900">${t}</option>`);</script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('trnSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-amber-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <label class="text-[7px] font-black text-amber-500 uppercase leading-none">Week</label>
+                        <select id="weekSelect" onchange="triggerFetch()" class="bg-transparent text-amber-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[50px]">
+                            <script>for (let i = 1; i <= 38; i++) document.write(`<option value="${i}" class="bg-slate-900">W${i}</option>`);</script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto p-4 md:p-8">
+        <div id="resultsWrapper" class="space-y-4">
+            <div id="loadingState" class="text-center py-20">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500 mb-4"></div>
+                <p id="loadingText" class="text-slate-500 font-black text-xs uppercase tracking-widest">Accessing La Liga Archives...</p>
+            </div>
+            <div id="resultsGrid" class="hidden grid gap-3"></div>
+        </div>
+    </main>
+
+<script>
+    let fetchController = null;
+    const LEAGUE_KEY = 'laliga'; 
+
+    // Sync with the terminal's localStorage key
+    const STORAGE_KEY = 'laliga_terminal_last_view';
+
+    function stepValue(id, direction) {
+        const el = document.getElementById(id);
+        if (el.selectedIndex + direction >= 0 && el.selectedIndex + direction < el.options.length) {
+            el.selectedIndex += direction;
+            triggerFetch();
+        }
+    }
+
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved) {
+            document.getElementById('seasonSelect').value = saved.season;
+            document.getElementById('trnSelect').value = saved.trn;
+            document.getElementById('weekSelect').value = saved.week;
+        }
+        triggerFetch();
+    };
+
+    function triggerFetch() {
+        // CONVERSION: Ensure inputs are Numbers to match Database Schema
+        const season = Number(document.getElementById('seasonSelect').value);
+        const trn = Number(document.getElementById('trnSelect').value);
+        const week = Number(document.getElementById('weekSelect').value);
+        
+        // Save state
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ season, trn, week }));
+        fetchResults(season, trn, week);
+    }
+
+    async function fetchResults(season, trn, week) {
+        const grid = document.getElementById('resultsGrid');
+        const loader = document.getElementById('loadingState');
+        const loadingText = document.getElementById('loadingText');
+
+        if (fetchController) fetchController.abort();
+        fetchController = new AbortController();
+
+        grid.style.opacity = "0.4"; 
+        loader.classList.remove('hidden');
+        loadingText.innerText = `FETCHING LA LIGA TRN ${trn} | WEEK ${week}`;
+
+        try {
+            // API call with sanitized number parameters
+            const response = await fetch(`/api/api?season=${season}&trn=${trn}&week=${week}&league=${LEAGUE_KEY}`, { signal: fetchController.signal });
+            if (!response.ok) throw new Error('Not Found');
+            const data = await response.json();
+
+            grid.style.opacity = "1";
+            loader.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            if (data && data.length > 0) {
+                renderResults(data[0].matches, { season, trn, week });
+            } else {
+                renderResults([], {});
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase tracking-widest border border-slate-800 rounded-xl bg-slate-900/50">Record Not Found in La Liga Database</div>`;
+            loader.classList.add('hidden');
+            grid.classList.remove('hidden');
+            grid.style.opacity = "1";
+        }
+    }
+
+    async function renderResults(matches, currentContext) {
+        const grid = document.getElementById('resultsGrid');
+        if (!matches || matches.length === 0) {
+            grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl"><p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No La Liga Entry for this TRN</p></div>`;
+            return;
+        }
+
+        const matchCards = await Promise.all(matches.map(async (match) => {
+            let historicalBadge = "";
+            try {
+                const hRes = await fetch(`/api/api?league=${LEAGUE_KEY}&homeTeam=${encodeURIComponent(match.homeTeam)}&awayTeam=${encodeURIComponent(match.awayTeam)}`);
+                const hData = await hRes.json();
+
+                // TYPE-SAFE FILTER: Ensure comparison uses Numbers
+                const history = hData.filter(item => 
+                    Number(item.season) !== Number(currentContext.season) || 
+                    Number(item.trn) !== Number(currentContext.trn) || 
+                    Number(item.week) !== Number(currentContext.week)
+                );
+
+                if (history.length > 0) {
+                    const duplicate = history[0]; 
+                    historicalBadge = `
+                        <div class="mt-3 pt-2 border-t border-slate-700/40 w-full flex justify-center items-center gap-2">
+                            <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">Historical Matchup:</span>
+                            <div class="flex gap-1.5 text-[9px] font-black">
+                                <span class="text-amber-400">S${duplicate.season}</span>
+                                <span class="text-rose-500">T${duplicate.trn}</span>
+                                <span class="text-slate-300">W${duplicate.week}</span>
+                                <span class="text-white bg-slate-950 px-1.5 rounded border border-slate-700">${duplicate.homeScore}-${duplicate.awayScore}</span>
+                            </div>
+                        </div>`;
+                }
+            } catch (err) { console.error("History check error", err); }
+
+            return `
+                <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-amber-500/30 group">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex-1 text-right pr-4">
+                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100 group-hover:text-amber-50">${match.homeTeam}</span>
+                        </div>
+                        <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner group-hover:border-amber-500/50">
+                            <span class="text-xl md:text-2xl font-black text-amber-400">${match.homeScore}</span>
+                            <span class="text-slate-700 font-bold">VS</span>
+                            <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
+                        </div>
+                        <div class="flex-1 text-left pl-4">
+                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100 group-hover:text-amber-50">${match.awayTeam}</span>
+                        </div>
+                    </div>
+                    ${historicalBadge}
+                </div>`;
+        }));
+        grid.innerHTML = matchCards.join('');
+    }
+</script>
+</body>
+</html>

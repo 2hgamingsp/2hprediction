@@ -1,0 +1,21 @@
+{
+  "name": "2h-gaming-score-prediction",
+  "version": "1.0.0",
+  "description": "Soccer Database Terminal with Express and MongoDB",
+  "main": "netlify/functions/api.js",
+  "scripts": {
+    "start": "node netlify/functions/api.js",
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "mongodb": "^6.21.0",
+    "serverless-http": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Italian Terminal | Soccer Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        select option { background: #064e3b; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-emerald-500/30">
+
+    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                </a>
+                <h1 class="text-xl font-black uppercase tracking-tighter text-emerald-500">Italian Terminal</h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <div class="flex bg-slate-800 p-1 rounded-lg border border-white/5 text-[9px] font-bold uppercase">
+                    <a href="englishleague.html" class="px-3 py-1.5 hover:text-indigo-400 transition">English</a>
+                    <a href="laligaleague.html" class="px-3 py-1.5 border-l border-white/10 hover:text-amber-400 transition">LaLiga</a>
+                </div>
+                <div class="bg-slate-950 border border-emerald-500/40 rounded-lg px-2 py-1 flex items-center gap-2">
+                    <span class="text-[8px] font-black text-emerald-500 uppercase">TRN</span>
+                    <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-emerald-400 outline-none cursor-pointer">
+                        <script>for (let t = 1; t <= 10000; t++) document.write(`<option value="${t}">${t}</option>`);</script>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        <div class="bg-slate-800 shadow-2xl rounded-2xl border border-slate-700 overflow-hidden">
+            <form id="matchForm">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-center">
+                        <tbody class="divide-y divide-slate-700/30">
+                            <script>
+                                for (let i = 1; i <= 10; i++) {
+                                    document.write(`
+                                        <tr class="group hover:bg-white/[0.02]">
+                                            <td class="py-4 px-2 text-slate-600 font-black text-xs">${i}</td>
+                                            <td class="py-4 px-2"><input list="serie-a-clubs" type="text" placeholder="HOME" class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-3 text-lg font-black text-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none uppercase text-center"></td>
+                                            <td class="py-4 px-2">
+                                                <div class="inline-flex items-center bg-slate-950 p-2 rounded-lg border-b-2 border-emerald-600">
+                                                    <input type="number" value="0" class="w-12 bg-transparent text-center text-2xl font-black outline-none text-white">
+                                                    <span class="text-slate-600 font-bold px-2">-</span>
+                                                    <input type="number" value="0" class="w-12 bg-transparent text-center text-2xl font-black outline-none text-white">
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-2"><input list="serie-a-clubs" type="text" placeholder="AWAY" class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-3 text-lg font-black text-emerald-200 focus:ring-2 focus:ring-emerald-500 outline-none uppercase text-center"></td>
+                                            <td class="py-4 px-2 text-right pr-4">
+                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                                    <option>FT</option><option>LIVE</option><option>PPD</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    `);
+                                }
+                            </script>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-10 bg-slate-900/30 border-t border-slate-700/50 flex justify-between items-center">
+                    <button type="submit" class="px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all">
+                        Sync Italian TRN
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <datalist id="serie-a-clubs">
+        <option value="INT">Inter Milan</option><option value="JUV">Juventus</option>
+        <option value="MIL">AC Milan</option><option value="NAP">Napoli</option>
+        <option value="ROM">AS Roma</option><option value="LAZ">Lazio</option>
+        <option value="ATA">Atalanta</option><option value="FIO">Fiorentina</option>
+    </datalist>
+
+    <script>
+        // CRITICAL: Set league to "italian" for MongoDB sorting
+        const LEAGUE_ID = "italian";
+        
+        document.getElementById('matchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const trn = document.getElementById('tournamentSelect').value;
+            const rows = document.querySelectorAll('tbody tr');
+            const matches = Array.from(rows).map((row, i) => {
+                const inputs = row.querySelectorAll('input');
+                return {
+                    league: LEAGUE_ID,
+                    season: "2025", // Simplified for example
+                    trn: trn,
+                    week: "1",
+                    slot: i + 1,
+                    homeTeam: inputs[0].value.trim().toUpperCase(),
+                    homeScore: parseInt(inputs[1].value) || 0,
+                    awayScore: parseInt(inputs[2].value) || 0,
+                    awayTeam: inputs[3].value.trim().toUpperCase(),
+                    status: row.querySelector('select').value
+                };
+            }).filter(m => m.homeTeam && m.awayTeam);
+
+            const response = await fetch('/api/api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matches })
+            });
+            if(response.ok) alert("Italian Data Synced!");
+        });
+    </script>
+</body>
+</html>
