@@ -5,6 +5,7 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
+
 app.use(cors()); 
 app.use(express.json());
 
@@ -12,148 +13,159 @@ const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
 async function connectToDatabase() {
-    if (!uri) throw new Error("MONGODB_URI is not defined");
+    if (!uri) {
+        throw new Error("MONGODB_URI is not defined in environment variables");
+    }
     if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
         return cachedClient;
     }
-    const client = new MongoClient(uri, { 
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 10000, 
-    });
-    await client.connect();
-    cachedClient = client;
-    return client;
+    try {
+        const client = new MongoClient(uri, { 
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 10000, 
+        });
+        await client.connect();
+        cachedClient = client;
+        return client;
+    } catch (err) {
+        console.error("Failed to connect to MongoDB:", err);
+        throw err;
+    }
 }
 
 function getCollectionName(league) {
-    return `${(league || "matches").toLowerCase().trim()}_matches`;
+    if (!league) return "matches"; 
+    const cleanLeague = league.toLowerCase().trim();
+    return `${cleanLeague}_matches`;
 }
 
-// --- CORE PATTERN FINGERPRINTING ---
-const getFingerprints = (matches) => {
-    if (!matches || matches.length === 0) return {};
-    const clean = (t) => (t || "").toString().trim().toLowerCase();
-
-    // Exact Sequence: "team:score-score:team|..."
-    const exact = matches.map(m => `${clean(m.homeTeam)}:${m.homeScore}-${m.awayScore}:${clean(m.awayTeam)}`).join('|');
-    // Scrambled (Rearranged): Sort alphabetically so order doesn't matter
-    const scrambled = matches.map(m => `${clean(m.homeTeam)}:${m.homeScore}-${m.awayScore}:${clean(m.awayTeam)}`).sort().join('|');
-    // Score Pattern: "0-2|1-0|..."
-    const scores = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
-    // Team Pattern: "teamvsteam" sorted alphabetically
-    const teams = matches.map(m => [clean(m.homeTeam), clean(m.awayTeam)].sort().join('v')).sort().join('|');
-
-    return { exact, scrambled, scores, teams };
-};
-
-// --- OPTIMIZED GET ROUTE ---
+// --- GET ROUTE (OPTIMIZED) ---
 app.get("/api/api", async (req, res) => {
     try {
-        const { season, trn, week, league, homeTeam, awayTeam } = req.query;
-        if (!league) return res.status(400).json({ error: "League is required" });
+        const { season, trn, week, league, homeTeam, awayTeam, compact } = req.query;
+        
+        if (!league) return res.status(400).json({ error: "League parameter is required" });
 
         const client = await connectToDatabase();
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // Ensure database is indexed for speed
-        await collection.createIndex({ season: -1, trn: -1, week: -1 });
+        // 1. FAST INDEXING: Ensure the database is indexed for these fields
+        // This makes searches across thousands of records nearly instant.
+        collection.createIndex({ season: -1, trn: -1, week: -1 });
 
-        // CASE 1: SEARCHING FOR A SPECIFIC MATCHUP
+        // SCENARIO 1: Historical Matchup Check
         if (homeTeam && awayTeam) {
-            const history = await collection.find({
-                "matches": { $elemMatch: { 
-                    homeTeam: homeTeam.toUpperCase().trim(), 
-                    awayTeam: awayTeam.toUpperCase().trim() 
-                }}
-            }).project({ matches: 1, season: 1, trn: 1, week: 1 }).sort({ season: -1 }).limit(50).toArray();
-            return res.status(200).json(history);
-        }
-
-        // CASE 2: SEARCHING BY SEASON/TRN/WEEK (WITH INSTANT SCAN)
-        if (season && trn && week) {
-            // Fetch the ENTIRE league history in one go, but only the fields we need
-            // This is the "Full Scan" that prevents the frontend from waiting
-            const allRecords = await collection.find({})
-                .project({ _id: 1, season: 1, trn: 1, week: 1, matches: 1 })
-                .sort({ season: -1, trn: -1, week: -1 })
-                .toArray();
-
-            const requested = allRecords.find(r => 
-                r.season == season && r.trn == trn && r.week == week
-            );
-
-            if (!requested) return res.status(404).json({ error: "Record not found" });
-
-            // RUN PATTERN ANALYSIS ON SERVER
-            const currentKeys = getFingerprints(requested.matches);
-            const alerts = [];
-
-            allRecords.forEach(past => {
-                if (past._id === requested._id) return; // Skip itself
-                const pastKeys = getFingerprints(past.matches);
-
-                if (currentKeys.exact === pastKeys.exact) {
-                    alerts.push({ type: "EXACT SEQUENCE MATCH", color: "indigo", data: past });
-                } else if (currentKeys.scrambled === pastKeys.scrambled) {
-                    alerts.push({ type: "REARRANGED SEQUENCE", color: "amber", data: past });
-                } else if (currentKeys.teams === pastKeys.teams) {
-                    alerts.push({ type: "TEAM PATTERN MATCH", color: "emerald", data: past });
-                } else if (currentKeys.scores === pastKeys.scores) {
-                    alerts.push({ type: "SCORE PATTERN MATCH", color: "rose", data: past });
+            const historicalRecords = await collection.find({
+                "matches": {
+                    $elemMatch: {
+                        homeTeam: homeTeam.toUpperCase().trim(),
+                        awayTeam: awayTeam.toUpperCase().trim()
+                    }
                 }
+            })
+            .project({ matches: 1, season: 1, trn: 1, week: 1 }) // Only return what's needed
+            .sort({ season: -1, trn: -1 })
+            .limit(50) // Limit to 50 most recent for speed
+            .toArray();
+
+            const response = historicalRecords.map(doc => {
+                const match = doc.matches.find(m => 
+                    m.homeTeam === homeTeam.toUpperCase().trim() && 
+                    m.awayTeam === awayTeam.toUpperCase().trim()
+                );
+                return {
+                    homeTeam: match.homeTeam,
+                    awayTeam: match.awayTeam,
+                    homeScore: match.homeScore,
+                    awayScore: match.awayScore,
+                    season: doc.season,
+                    trn: doc.trn,
+                    week: doc.week
+                };
             });
 
-            // Return the requested week AND the identified historical patterns
-            return res.status(200).json({
-                main: requested,
-                alerts: alerts
+            return res.status(200).json(response);
+        }
+
+        // SCENARIO 2: Filtered Fetch / Duplicate Scan
+        const query = {};
+        if (season) query.season = season;
+        if (trn) query.trn = trn;
+        if (week) query.week = week;
+
+        // SPEED BOOSTER: Use projection to reduce payload size
+        // If compact=true, we don't send extra database IDs or heavy strings
+        let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
+
+        if (compact === "true") {
+            cursor = cursor.project({
+                _id: 0,
+                matches: 1,
+                season: 1,
+                trn: 1,
+                week: 1
             });
         }
 
-        // FALLBACK: Return list (limited for performance)
-        const results = await collection.find({}).sort({ season: -1, trn: -1, week: -1 }).limit(100).toArray();
+        const limitValue = (season || trn || week) ? 0 : 1000;
+        const results = await cursor.limit(limitValue).toArray();
+
         res.status(200).json(results);
         
     } catch (error) {
+        console.error("Fetch Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// --- POST ROUTE (STAYS THE SAME) ---
+// --- POST ROUTE (SANITIZED) ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
         const matchData = batch.matches || batch.allMatches;
-        if (!matchData) return res.status(400).json({ error: "No data" });
+
+        if (!matchData || matchData.length === 0) {
+            return res.status(400).json({ error: "No match data provided." });
+        }
 
         const client = await connectToDatabase();
         const db = client.db();
         const collection = db.collection(getCollectionName(batch.league));
 
-        const sanitized = matchData.map(m => ({
-            homeTeam: (m.homeTeam || m.home || "N/A").toString().toUpperCase().trim(),
-            awayTeam: (m.awayTeam || m.away || "N/A").toString().toUpperCase().trim(),
+        const sanitizedMatches = matchData.map(m => ({
+            homeTeam: (m.homeTeam || m.home || "UNKNOWN").toString().toUpperCase().trim(),
+            awayTeam: (m.awayTeam || m.away || m.visitor || "UNKNOWN").toString().toUpperCase().trim(),
             homeScore: parseInt(m.homeScore) || 0,
             awayScore: parseInt(m.awayScore) || 0
         }));
 
         const customId = `${batch.league.toLowerCase()}-${batch.season}-${batch.trn}-${batch.week}`;
-        await collection.updateOne(
+        
+        const updateDoc = {
+            _id: customId,
+            league: batch.league.toLowerCase(),
+            season: batch.season.toString(),
+            trn: batch.trn.toString(),
+            week: batch.week.toString(),
+            matches: sanitizedMatches,
+            lastUpdated: new Date()
+        };
+
+        const result = await collection.updateOne(
             { _id: customId },
-            { $set: {
-                _id: customId,
-                league: batch.league.toLowerCase(),
-                season: batch.season.toString(),
-                trn: batch.trn.toString(),
-                week: batch.week.toString(),
-                matches: sanitized,
-                lastUpdated: new Date()
-            }},
+            { $set: updateDoc },
             { upsert: true }
         );
-        res.status(200).json({ success: true, id: customId });
+
+        res.status(200).json({ 
+            success: true, 
+            id: customId, 
+            action: result.upsertedCount > 0 ? "created" : "updated" 
+        });
+
     } catch (error) {
+        console.error("Post Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
