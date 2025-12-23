@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Results | Soccer Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes bounce-short {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-bounce-short {
+            animation: bounce-short 2s ease-in-out infinite;
+        }
+    </style>
 </head>
 <body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-indigo-500/30">
 
@@ -98,16 +107,11 @@
 <script>
     let fetchController = null;
 
-    // HELPER: To jump to the original duplicate record found in history
     function navigateToOriginal(season, trn, week) {
         document.getElementById('seasonSelect').value = season;
         document.getElementById('trnSelect').value = trn;
         document.getElementById('weekSelect').value = week;
-        
-        // Refresh the view
         triggerFetch();
-        
-        // Smooth scroll back to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -115,7 +119,6 @@
         const el = document.getElementById(id);
         const currentIndex = el.selectedIndex;
         const nextIndex = currentIndex + direction;
-
         if (nextIndex >= 0 && nextIndex < el.options.length) {
             el.selectedIndex = nextIndex;
             triggerFetch();
@@ -165,7 +168,6 @@
             grid.classList.remove('hidden');
 
             if (data && data.length > 0) {
-                // We use data[0].matches because the backend returns matches in an array
                 renderResults(data[0].matches, { season, trn, week });
             } else {
                 renderResults([], {});
@@ -180,10 +182,15 @@
         }
     }
 
-    // HELPER: Creates a unique string fingerprint for the 10 matches
+    // --- CRITICAL FIX: FUZZY FINGERPRINTING ---
     function generateBatchFingerprint(matches) {
         if (!matches || matches.length === 0) return "";
-        return matches.map(m => `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`).join('|');
+        // We trim spaces and force lowercase to ensure "TEAM A" matches "team a "
+        return matches.map(m => {
+            const h = m.homeTeam.toString().trim().toLowerCase();
+            const a = m.awayTeam.toString().trim().toLowerCase();
+            return `${h}:${m.homeScore}-${m.awayScore}:${a}`;
+        }).join('|');
     }
 
     async function renderResults(matches, currentContext) {
@@ -200,36 +207,36 @@
 
         // --- 1. HISTORICAL CROSS-CHECK ---
         try {
-            // Fetch all records for this league to find identical match sequences
             const allRes = await fetch(`/api/api?league=english`);
             const allData = await allRes.json();
             const currentFingerprint = generateBatchFingerprint(matches);
 
-            // Find a record that ISN'T the one we are currently looking at, but HAS the same matches
-            const duplicateBatch = allData.find(record => 
-                (record.season != currentContext.season || record.trn != currentContext.trn || record.week != currentContext.week) &&
-                generateBatchFingerprint(record.matches) === currentFingerprint
-            );
+            const duplicateBatch = allData.find(record => {
+                // Ensure we aren't comparing the record to itself
+                const isNotSelf = (record.season != currentContext.season || record.trn != currentContext.trn || record.week != currentContext.week);
+                const historicalFingerprint = generateBatchFingerprint(record.matches);
+                return isNotSelf && historicalFingerprint === currentFingerprint;
+            });
 
             if (duplicateBatch) {
                 batchAlertHtml = `
-                    <div class="bg-indigo-600 border-l-4 border-indigo-400 p-6 rounded-2xl mb-8 shadow-2xl shadow-indigo-500/30 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div class="bg-indigo-600 border-l-4 border-indigo-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
                         <div class="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div class="flex items-center gap-4">
                                 <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white text-lg font-black uppercase tracking-tighter leading-tight">Duplicate Historical Sequence</h3>
-                                    <p class="text-indigo-100 text-[10px] font-bold opacity-90 uppercase tracking-[0.2em]">Identical 10-Match Pattern Found in Database</p>
+                                    <h3 class="text-white text-lg font-black uppercase tracking-tighter">DUPLICATE DETECTED</h3>
+                                    <p class="text-indigo-100 text-[10px] font-bold opacity-90 uppercase tracking-widest">Matches S${duplicateBatch.season} TRN ${duplicateBatch.trn} Week ${duplicateBatch.week}</p>
                                 </div>
                             </div>
                             
                             <button onclick="navigateToOriginal('${duplicateBatch.season}', '${duplicateBatch.trn}', '${duplicateBatch.week}')" 
-                                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all transform active:scale-95 shadow-xl flex items-center gap-2 border border-white/10">
-                                View S${duplicateBatch.season} TRN ${duplicateBatch.trn}
+                                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
+                                View Original Pattern
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
@@ -241,7 +248,6 @@
             console.error("Historical cross-check failed", e); 
         }
 
-        // --- 2. RENDER MATCH CARDS ---
         const matchCards = matches.map((match) => {
             return `
                 <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
