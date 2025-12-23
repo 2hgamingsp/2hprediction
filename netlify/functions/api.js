@@ -12,18 +12,10 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
-// UPDATED: Optimized for Serverless fast-fail and connection reuse
 async function connectToDatabase() {
-    if (cachedClient) {
-        return cachedClient;
-    }
-    if (!uri) {
-        throw new Error("MONGODB_URI is not defined in environment variables");
-    }
-    const client = new MongoClient(uri, { 
-        // Best for Serverless: shorter timeouts to fail fast and retry
-        serverSelectionTimeoutMS: 5000,
-    });
+    if (cachedClient) return cachedClient;
+    if (!uri) throw new Error("MONGODB_URI is not defined");
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
     cachedClient = client;
     return client;
@@ -35,7 +27,7 @@ function getCollectionName(league) {
     return `${cleanLeague}_matches`;
 }
 
-// --- GET ROUTE (OPTIMIZED) ---
+// --- GET ROUTE (OPTIMIZED FOR TIMELINE) ---
 app.get("/api/api", async (req, res) => {
     try {
         const { season, trn, week, league, homeTeam, awayTeam, compact } = req.query;
@@ -46,7 +38,7 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // UPDATED SCENARIO 1: Historical Matchup Check with $ Projection
+        // SCENARIO 1: Historical Matchup Check (Unchanged)
         if (homeTeam && awayTeam) {
             const hTeam = homeTeam.toUpperCase().trim();
             const aTeam = awayTeam.toUpperCase().trim();
@@ -54,13 +46,13 @@ app.get("/api/api", async (req, res) => {
             const historicalRecords = await collection.find({
                 "matches": { $elemMatch: { homeTeam: hTeam, awayTeam: aTeam } }
             })
-            .project({ "matches.$": 1, season: 1, trn: 1, week: 1 }) // Use $ projection to return ONLY the matching match
+            .project({ "matches.$": 1, season: 1, trn: 1, week: 1 }) 
             .sort({ season: -1 })
             .limit(50)
             .toArray();
 
             const response = historicalRecords.map(doc => ({
-                ...doc.matches[0], // Only the specific match we queried for
+                ...doc.matches[0],
                 season: doc.season,
                 trn: doc.trn,
                 week: doc.week
@@ -69,12 +61,15 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Filtered Fetch / Duplicate Scan
+        // SCENARIO 2: Filtered Fetch / Timeline / Duplicate Scan
         const query = {};
-        if (season) query.season = season;
-        if (trn) query.trn = trn;
-        if (week) query.week = week;
+        // Convert to string to match how you save them in the POST route
+        if (season) query.season = season.toString();
+        if (trn) query.trn = trn.toString();
+        if (week) query.week = week.toString();
 
+        // SORTING: Newest Season -> Newest TRN -> Newest Week
+        // This ensures the "Latest" result is always at results[0]
         let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
 
         if (compact === "true") {
@@ -83,11 +78,15 @@ app.get("/api/api", async (req, res) => {
                 matches: 1,
                 season: 1,
                 trn: 1,
-                week: 1
+                week: 1,
+                deviceTime: 1,      // ADDED: Needed for frontend labels
+                deviceTimestamp: 1   // ADDED: Helpful for secondary sorting
             });
         }
 
-        const limitValue = (season || trn || week) ? 0 : 1000;
+        // If specific TRN or Season is requested, return everything found (no limit)
+        // If it's a general "fetch everything" request, keep the 1000 limit
+        const limitValue = (season || trn) ? 0 : 1000;
         const results = await cursor.limit(limitValue).toArray();
 
         res.status(200).json(results);
@@ -98,7 +97,7 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- POST ROUTE (UPDATED TO INCLUDE DEVICE TIME) ---
+// --- POST ROUTE (KEEPING YOUR LOGIC) ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
@@ -128,10 +127,9 @@ app.post("/api/api", async (req, res) => {
             trn: batch.trn.toString(),
             week: batch.week.toString(),
             matches: sanitizedMatches,
-            // NEW FIELDS FROM DEVICE:
-            deviceTime: batch.syncedAt,   // Readable string from user's device
-            deviceTimestamp: batch.timestamp, // Raw number for sorting
-            serverTime: new Date()        // Server's own backup timestamp
+            deviceTime: batch.syncedAt,   
+            deviceTimestamp: batch.timestamp, 
+            serverTime: new Date()        
         };
 
         const result = await collection.updateOne(
