@@ -12,14 +12,30 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
+
 async function connectToDatabase() {
+    // 1. Check if URI exists before trying to use it
+    if (!uri) {
+        throw new Error("MONGODB_URI is not defined in environment variables");
+    }
+
     if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
         return cachedClient;
     }
-    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
-    await client.connect();
-    cachedClient = client;
-    return client;
+
+    try {
+        const client = new MongoClient(uri, { 
+            serverSelectionTimeoutMS: 5000,
+            // These options help with stability in serverless environments
+            connectTimeoutMS: 10000, 
+        });
+        await client.connect();
+        cachedClient = client;
+        return client;
+    } catch (err) {
+        console.error("Failed to connect to MongoDB:", err);
+        throw err;
+    }
 }
 
 function getCollectionName(league) {
