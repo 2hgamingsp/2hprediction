@@ -25,18 +25,20 @@
                 </svg>
             </div>
             <h3 class="text-xl font-black text-white uppercase mb-2">Sync Successful</h3>
-            <p id="modalMessage" class="text-slate-400 text-sm mb-6">Matches recorded in database.</p>
-            <button onclick="closeModal()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors">Continue</button>
+            <p id="modalMessage" class="text-slate-400 text-sm mb-6">Matches have been recorded in the database.</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors">
+                Continue
+            </button>
         </div>
     </div>
 
     <div id="duplicateModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
-        <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-rose-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl">
-            <div class="flex items-center gap-3 mb-4 text-rose-400">
+        <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-indigo-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl">
+            <div class="flex items-center gap-3 mb-4 text-indigo-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <h3 class="text-lg font-black uppercase tracking-tight">Full Batch Duplicate Detected</h3>
+                <h3 class="text-lg font-black uppercase tracking-tight">Historical Record Found</h3>
             </div>
             
             <div id="duplicateContent" class="space-y-3 mb-6"></div>
@@ -45,8 +47,8 @@
                 <button onclick="closeDuplicateModal(true)" class="py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition">
                     Ignore & Sync
                 </button>
-                <a id="viewRecordBtn" href="englishresult.html" class="py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2">
-                    <span>View Record</span>
+                <a id="viewRecordBtn" href="englishresult.html" class="py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2">
+                    <span>View Database</span>
                 </a>
             </div>
         </div>
@@ -62,21 +64,70 @@
                 </a>
                 <h1 class="text-xl font-black uppercase tracking-tighter text-white">English Terminal</h1>
             </div>
+            
             <div class="flex flex-wrap items-center justify-center gap-3">
-                <select id="seasonSelect" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-white outline-none">
-                    <script>
-                        for (let year = 2025; year <= 2060; year++) {
-                            let nextYear = (year + 1).toString().slice(-2);
-                            document.write(`<option value="${year}">${year}/${nextYear}</option>`);
-                        }
-                    </script>
-                </select>
-                <select id="tournamentSelect" class="bg-slate-950 border border-rose-500/40 rounded-lg px-2 py-1 text-xs font-bold text-rose-400 outline-none">
-                    <script>for (let t = 1; t <= 10000; t++) { document.write(`<option value="${t}">${t}</option>`); }</script>
-                </select>
-                <select id="weekSelect" class="bg-slate-950 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs font-bold text-indigo-400 outline-none">
-                    <script>for (let i = 1; i <= 36; i++) { document.write(`<option value="${i}">${i}</option>`); }</script>
-                </select>
+                <div class="flex bg-slate-800 p-1 rounded-lg border border-white/5 text-[9px] font-bold uppercase">
+                    <a href="laligaleague.html" class="px-3 py-1.5 hover:text-amber-400 transition">LaLiga</a>
+                    <a href="italianleague.html" class="px-3 py-1.5 border-l border-white/10 hover:text-emerald-400 transition">Italian</a>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 flex items-center gap-2">
+                    <span class="text-[8px] font-black text-slate-500 uppercase">Season</span>
+                    <select id="seasonSelect" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer">
+                        <script>
+                            for (let year = 2025; year <= 2060; year++) {
+                                let nextYear = (year + 1).toString().slice(-2);
+                                document.write(`<option value="${year}">${year}/${nextYear}</option>`);
+                            }
+                        </script>
+                    </select>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-rose-500/40 rounded-lg p-1 shadow-lg shadow-rose-500/5">
+                    <button type="button" onclick="stepValue('tournamentSelect', -1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <span class="text-[7px] font-black text-rose-500 uppercase tracking-tighter leading-none">TRN</span>
+                        <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-rose-400 outline-none cursor-pointer appearance-none text-center min-w-[40px]">
+                            <script>
+                                for (let t = 1; t <= 10000; t++) {
+                                    document.write(`<option value="${t}">${t}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('tournamentSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-indigo-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-indigo-500/20 rounded transition text-indigo-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <span class="text-[7px] font-black text-indigo-500 uppercase leading-none">Week</span>
+                        <select id="weekSelect" class="bg-transparent text-xs font-bold text-indigo-400 outline-none cursor-pointer appearance-none text-center min-w-[30px]">
+                            <script>
+                                for (let i = 1; i <= 36; i++) {
+                                    document.write(`<option value="${i}">${i}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-indigo-500/20 rounded transition text-indigo-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -85,117 +136,167 @@
         <div class="bg-slate-800 shadow-2xl rounded-2xl border border-slate-700 overflow-hidden">
             <form id="matchForm">
                 <input type="hidden" id="leagueId" value="english">
-                <table class="w-full text-center">
-                    <tbody id="matchRows" class="divide-y divide-slate-700/30">
-                        <script>
-                            for (let i = 1; i <= 10; i++) {
-                                document.write(`
-                                    <tr class="group hover:bg-white/[0.02]">
-                                        <td class="py-4 px-2 text-slate-600 font-black text-xs">${i}</td>
-                                        <td class="py-4 px-2">
-                                            <input list="english-clubs" type="text" placeholder="HOME" class="w-full max-w-[160px] bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm font-black text-indigo-400 outline-none uppercase text-center">
-                                        </td>
-                                        <td class="py-4 px-2">
-                                            <div class="inline-flex items-center bg-slate-950 p-1 rounded-lg border-b-2 border-indigo-600">
-                                                <input type="number" min="0" value="0" class="w-8 bg-transparent text-center font-black text-white outline-none">
-                                                <span class="text-slate-600 font-bold px-1">-</span>
-                                                <input type="number" min="0" value="0" class="w-8 bg-transparent text-center font-black text-white outline-none">
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-2">
-                                            <input list="english-clubs" type="text" placeholder="AWAY" class="w-full max-w-[160px] bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm font-black text-rose-400 outline-none uppercase text-center">
-                                        </td>
-                                        <td class="hidden"><select><option value="FT">FT</option></select></td>
-                                    </tr>
-                                `);
-                            }
-                        </script>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-center">
+                        <thead>
+                            <tr class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-700/50">
+                                <th class="py-4 px-2 font-black w-10">#</th>
+                                <th class="py-4 px-2 font-black">Home Team</th>
+                                <th class="py-4 px-2 font-black">Result</th>
+                                <th class="py-4 px-2 font-black">Away Team</th>
+                                <th class="py-4 px-2 font-black text-right pr-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/30">
+                            <script>
+                                for (let i = 1; i <= 10; i++) {
+                                    document.write(`
+                                        <tr class="group hover:bg-white/[0.02] transition-colors">
+                                            <td class="py-4 px-2 text-slate-600 font-black text-[10px] md:text-xs">${i}</td>
+                                            <td class="py-4 px-2">
+                                                <input list="english-clubs" type="text" placeholder="HOME" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-indigo-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <div class="inline-flex items-center bg-slate-950 p-1 md:p-2 rounded-lg border-b-2 border-indigo-600">
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                    <span class="text-slate-600 font-bold px-1 md:px-2">-</span>
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <input list="english-clubs" type="text" placeholder="AWAY" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-rose-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2 text-right pr-4">
+                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-1 py-1 md:px-2 md:py-2 text-[8px] md:text-[10px] font-bold text-emerald-500 outline-none uppercase cursor-pointer">
+                                                    <option value="FT">FT</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    `);
+                                }
+                            </script>
+                        </tbody>
+                    </table>
+                </div>
 
-                <div class="p-8 bg-slate-900/30 border-t border-slate-700/50 flex justify-end gap-4">
-                    <button type="reset" class="px-6 py-3 text-slate-500 font-black text-xs uppercase hover:text-rose-500 transition">Clear</button>
-                    <button type="submit" id="syncBtn" class="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
-                        Sync TRN Data
-                    </button>
+                <div class="p-6 md:p-10 bg-slate-900/30 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="text-center md:text-left">
+                        <p class="text-[10px] text-rose-500 font-black uppercase tracking-[0.2em]">Tournament Indexing Enabled</p>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Capacity: 10,000 Unique Batches</p>
+                    </div>
+
+                    <div class="flex-1 flex justify-center">
+                        <a href="englishresult.html" class="px-6 py-3 border border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-400 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            View All TRN Results
+                        </a>
+                    </div>
+
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <button type="reset" class="flex-1 md:px-8 py-3 text-slate-500 hover:text-rose-500 font-black text-xs uppercase transition">Clear</button>
+                        <button type="submit" class="flex-1 md:px-12 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
+                            Sync TRN Data
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </main>
 
+    <footer class="pb-10 text-center">
+        <p class="text-slate-600 text-[9px] font-bold uppercase tracking-[0.4em]">Proprietary English Management Interface</p>
+    </footer>
+
     <datalist id="english-clubs">
         <option value="ARS">Arsenal</option><option value="AST">Aston Villa</option>
         <option value="BOU">Bournemouth</option><option value="BRE">Brentford</option>
-        <option value="BHA">Brighton</option><option value="CHE">Chelsea</option>
-        <option value="CRY">Palace</option><option value="EVE">Everton</option>
-        <option value="FUL">Fulham</option><option value="LIV">Liverpool</option>
-        <option value="MNC">Man City</option><option value="MNU">Man United</option>
-        <option value="NEW">Newcastle</option><option value="TOT">Tottenham</option>
-        <option value="WHU">West Ham</option>
+        <option value="BHA">Brighton & Hove Albion</option><option value="BUR">Burnley</option>
+        <option value="CHE">Chelsea</option><option value="CRY">Crystal Palace</option>
+        <option value="EVE">Everton</option><option value="FUL">Fulham</option>
+        <option value="LEE">Leeds United</option><option value="LIV">Liverpool</option>
+        <option value="MNC">Manchester City</option><option value="MNU">Manchester United</option>
+        <option value="NEW">Newcastle</option><option value="NOT">Nottingham Forest</option>
+        <option value="SUN">Sunderland</option><option value="TOT">Tottenham</option>
+        <option value="WHU">West Ham United</option><option value="WOL">Wolverhampton</option>
     </datalist>
 
 <script>
+  // --- STATE MANAGEMENT ---
 let pendingBatchData = null;
 
-// FINGERPRINT: Combines all 10 matches into one string for exact batch matching
+// NEW: Helper to create a unique fingerprint of the 10 matches
 function generateBatchFingerprint(matches) {
-    return matches.map(m => `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`).join('|');
+    return matches.map(m => 
+        `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`
+    ).join('|');
 }
 
-function showDuplicateModal(pastRecord, batchData) {
+// ... (keep stepValue, saveState, openModal, closeModal, closeDuplicateModal as they are) ...
+
+function showDuplicateModal(info, batchData, isFullBatchMatch = false) {
     pendingBatchData = batchData;
     const modal = document.getElementById('duplicateModal');
     const content = document.getElementById('duplicateContent');
     
-    content.innerHTML = `
-        <div class="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl">
-            <p class="text-white text-xs leading-relaxed">
-                This exact sequence of <span class="text-rose-400 font-black">10 matches and scores</span> was found in:
-            </p>
-            <div class="mt-3 flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
-                <span class="text-slate-400">Season: ${pastRecord.season}</span>
-                <span class="text-rose-400">TRN: ${pastRecord.trn}</span>
-                <span class="text-indigo-400">Week: ${pastRecord.week}</span>
+    if (isFullBatchMatch) {
+        content.innerHTML = `
+            <div class="bg-rose-500/20 border border-rose-500/50 p-4 rounded-xl mb-4">
+                <p class="text-rose-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ Exact Batch Duplicate</p>
+                <p class="text-white text-xs leading-relaxed">This exact sequence of 10 match results is already recorded in <span class="font-bold text-rose-300">TRN ${info.past.trn} (Week ${info.past.week})</span>.</p>
             </div>
-        </div>
-        <p class="text-slate-500 text-[10px] italic">Uploading this will create a duplicate record in the history.</p>
-    `;
+        `;
+    } else {
+        content.innerHTML = `
+            <p class="text-slate-400 text-xs">The matchup <span class="text-white font-bold">${info.current.home} vs ${info.current.away}</span> has been recorded before.</p>
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                <p class="text-[9px] text-indigo-500 font-black uppercase mb-1">Previous Result:</p>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold text-white">${info.past.homeTeam} ${info.past.homeScore} - ${info.past.awayScore} ${info.past.awayTeam}</span>
+                    <span class="text-[10px] text-slate-500 font-bold">TRN ${info.past.trn} | WK ${info.past.week}</span>
+                </div>
+            </div>
+        `;
+    }
     
-    document.getElementById('viewRecordBtn').href = `englishresult.html?season=${pastRecord.season}&trn=${pastRecord.trn}&week=${pastRecord.week}`;
+    document.getElementById('viewRecordBtn').href = `englishresult.html?search=${info.current.home || ''}`;
     modal.classList.remove('hidden');
     setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
 }
 
-function closeDuplicateModal(proceed = false) {
-    const modal = document.getElementById('duplicateModal');
-    modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        if (proceed && pendingBatchData) executeFinalSync(pendingBatchData);
-    }, 300);
-}
-
-async function executeFinalSync(batchData) {
-    const btn = document.getElementById('syncBtn');
-    btn.disabled = true;
-    btn.innerText = "SYNCING...";
-    
+// --- LOGIC FUNCTIONS ---
+async function checkHistory(currentBatchFingerprint, firstMatch) {
     try {
-        const res = await fetch('/api/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(batchData)
+        // 1. Fetch all records for this league to compare batches
+        const response = await fetch(`/api/api?league=english`);
+        const allData = await response.json();
+        
+        // 2. Check for "Batch Match" (All 10 identical)
+        const batchMatch = allData.find(record => {
+            const pastFingerprint = generateBatchFingerprint(record.allMatches);
+            return pastFingerprint === currentBatchFingerprint;
         });
-        if (res.ok) {
-            document.getElementById('successModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('successModal').querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+
+        if (batchMatch) return { type: 'FULL_BATCH', record: batchMatch };
+
+        // 3. Fallback: Check if just the first match is a duplicate (individual check)
+        const singleMatch = allData.find(record => 
+            record.allMatches.some(m => m.homeTeam === firstMatch.home && m.awayTeam === firstMatch.away)
+        );
+        
+        if (singleMatch) {
+            const matchDetails = singleMatch.allMatches.find(m => m.homeTeam === firstMatch.home && m.awayTeam === firstMatch.away);
+            return { type: 'SINGLE', record: { ...matchDetails, trn: singleMatch.trn, week: singleMatch.week } };
         }
-    } catch (e) { alert("Sync Failed"); }
-    btn.disabled = false;
-    btn.innerText = "Sync TRN Data";
+
+        return null; 
+    } catch (e) { return null; }
 }
 
-function closeModal() { location.reload(); }
+// ... (keep executeFinalSync as it is) ...
 
 document.getElementById('matchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -203,46 +304,54 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
     const trn = document.getElementById('tournamentSelect').value;
     const week = document.getElementById('weekSelect').value;
     const league = document.getElementById('leagueId').value;
+    const rows = document.querySelectorAll('tbody tr');
+    
     const matchesArray = [];
     let isFormValid = true;
 
-    document.querySelectorAll('#matchRows tr').forEach((row, idx) => {
+    // Collect Data
+    rows.forEach((row, index) => {
         const inputs = row.querySelectorAll('input');
         const home = inputs[0].value.trim().toUpperCase();
         const away = inputs[3].value.trim().toUpperCase();
+        
         if (!home || !away) isFormValid = false;
+
         matchesArray.push({
-            slot: idx + 1,
-            homeTeam: home, homeScore: parseInt(inputs[1].value) || 0,
-            awayScore: parseInt(inputs[2].value) || 0, awayTeam: away,
-            status: "FT"
+            slot: index + 1,
+            homeTeam: home,
+            homeScore: parseInt(inputs[1].value) || 0,
+            awayScore: parseInt(inputs[2].value) || 0,
+            awayTeam: away,
+            status: row.querySelector('select').value
         });
     });
 
-    if (!isFormValid) return alert("Fill all slots!");
+    if (!isFormValid) {
+        alert("⚠️ INCOMPLETE DATA: Fill all 10 slots.");
+        return;
+    }
 
     const currentFingerprint = generateBatchFingerprint(matchesArray);
     const batchData = { league, season, trn, week, allMatches: matchesArray };
-    
-    // Check if the exact batch exists anywhere in history
-    const syncBtn = document.getElementById('syncBtn');
-    syncBtn.innerText = "CHECKING...";
-    
-    try {
-        const response = await fetch(`/api/api?league=${league}`);
-        const allHistory = await response.json();
-        
-        const duplicateBatch = allHistory.find(record => 
-            generateBatchFingerprint(record.matches || record.allMatches) === currentFingerprint
-        );
 
-        if (duplicateBatch) {
-            syncBtn.innerText = "Sync TRN Data";
-            showDuplicateModal(duplicateBatch, batchData);
-        } else {
-            executeFinalSync(batchData);
-        }
-    } catch (err) { executeFinalSync(batchData); }
+    // SHOW LOADING STATE ON BUTTON
+    const syncBtn = e.target.querySelector('button[type="submit"]');
+    syncBtn.innerText = "CHECKING HISTORY...";
+    
+    // Check for history
+    const historyResult = await checkHistory(currentFingerprint, { home: matchesArray[0].homeTeam, away: matchesArray[0].awayTeam });
+
+    if (historyResult) {
+        syncBtn.innerText = "Sync TRN Data";
+        showDuplicateModal(
+            { current: { home: matchesArray[0].homeTeam, away: matchesArray[0].awayTeam }, past: historyResult.record },
+            batchData,
+            historyResult.type === 'FULL_BATCH'
+        );
+    } else {
+        executeFinalSync(batchData);
+    }
 });
 </script>
 </body>

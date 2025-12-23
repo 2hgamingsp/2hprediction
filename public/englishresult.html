@@ -37,31 +37,47 @@
 
                 <div class="flex items-center bg-slate-950 border border-rose-500/30 rounded-lg p-1">
                     <button type="button" onclick="stepValue('trnSelect', -1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
                     </button>
                     <div class="flex flex-col items-center px-1">
                         <label class="text-[7px] font-black text-rose-500 uppercase leading-none">TRN</label>
                         <select id="trnSelect" onchange="triggerFetch()" class="bg-transparent text-rose-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[40px]">
-                            <script>for (let t = 1; t <= 10000; t++) { document.write(`<option value="${t}" class="bg-slate-900">${t}</option>`); }</script>
+                            <script>
+                                for (let t = 1; t <= 10000; t++) {
+                                    document.write(`<option value="${t}" class="bg-slate-900">${t}</option>`);
+                                }
+                            </script>
                         </select>
                     </div>
                     <button type="button" onclick="stepValue('trnSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
                     </button>
                 </div>
 
                 <div class="flex items-center bg-slate-950 border border-indigo-500/30 rounded-lg p-1">
                     <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-indigo-500/20 rounded transition text-indigo-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
                     </button>
                     <div class="flex flex-col items-center px-1">
                         <label class="text-[7px] font-black text-indigo-500 uppercase leading-none">Week</label>
                         <select id="weekSelect" onchange="triggerFetch()" class="bg-transparent text-indigo-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[50px]">
-                            <script>for (let i = 1; i <= 36; i++) { document.write(`<option value="${i}" class="bg-slate-900">W${i}</option>`); }</script>
+                            <script>
+                                for (let i = 1; i <= 36; i++) {
+                                    document.write(`<option value="${i}" class="bg-slate-900">W${i}</option>`);
+                                }
+                            </script>
                         </select>
                     </div>
                     <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-indigo-500/20 rounded transition text-indigo-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -72,8 +88,9 @@
         <div id="resultsWrapper" class="space-y-4">
             <div id="loadingState" class="text-center py-20">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-                <p id="loadingText" class="text-slate-500 font-black text-xs uppercase tracking-widest">Accessing Terminal...</p>
+                <p id="loadingText" class="text-slate-500 font-black text-xs uppercase tracking-widest">Querying TRN Database...</p>
             </div>
+
             <div id="resultsGrid" class="hidden grid gap-3"></div>
         </div>
     </main>
@@ -83,7 +100,9 @@
 
     function stepValue(id, direction) {
         const el = document.getElementById(id);
-        const nextIndex = el.selectedIndex + direction;
+        const currentIndex = el.selectedIndex;
+        const nextIndex = currentIndex + direction;
+
         if (nextIndex >= 0 && nextIndex < el.options.length) {
             el.selectedIndex = nextIndex;
             triggerFetch();
@@ -111,105 +130,135 @@
     async function fetchResults(season, trn, week) {
         const grid = document.getElementById('resultsGrid');
         const loader = document.getElementById('loadingState');
+        const loadingText = document.getElementById('loadingText');
 
         if (fetchController) fetchController.abort();
         fetchController = new AbortController();
+        const { signal } = fetchController;
 
         grid.style.opacity = "0.4"; 
         loader.classList.remove('hidden');
+        loadingText.innerText = `FETCHING TRN ${trn} | WEEK ${week}`;
 
         try {
-            const res = await fetch(`/api/api?season=${season}&trn=${trn}&week=${week}&league=english`, { signal: fetchController.signal });
-            const data = await res.json();
+            const queryParams = `season=${season}&trn=${trn}&week=${week}&league=english`;
+            const response = await fetch(`/api/api?${queryParams}`, { signal });
+            
+            if (!response.ok) throw new Error('Not Found');
+            const data = await response.json();
 
+            grid.style.opacity = "1";
             loader.classList.add('hidden');
             grid.classList.remove('hidden');
-            grid.style.opacity = "1";
 
-            renderResults(data.length > 0 ? data[0].matches : [], { season, trn, week });
+            if (data && data.length > 0) {
+                renderResults(data[0].matches, { season, trn, week });
+            } else {
+                renderResults([], {});
+            }
 
         } catch (error) {
             if (error.name === 'AbortError') return;
-            grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-xs uppercase tracking-widest">Terminal Offline</div>`;
+            grid.style.opacity = "1";
+            grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase">Record Not Found</div>`;
+            loader.classList.add('hidden');
+            grid.classList.remove('hidden');
         }
     }
 
-    // CRITICAL: Generates a unique string representing all 10 matches and their scores
-    function getBatchKey(matches) {
+    // UTILITY: Generate a unique string for the entire set of matches
+    function generateBatchFingerprint(matches) {
         if (!matches || matches.length === 0) return "";
-        // Sort matches by home team name to ensure consistent fingerprints regardless of entry order
-        return [...matches]
-            .sort((a, b) => a.homeTeam.localeCompare(b.homeTeam))
-            .map(m => `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`)
-            .join('|');
+        return matches.map(m => `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`).join('|');
     }
 
-    async function renderResults(matches, current) {
+    async function renderResults(matches, currentContext) {
         const grid = document.getElementById('resultsGrid');
-        if (matches.length === 0) {
-            grid.innerHTML = `<div class="text-center py-20 border-2 border-dashed border-slate-800 rounded-3xl text-slate-600 font-black text-xs uppercase tracking-[0.2em]">No Synchronized Data Found</div>`;
+        
+        if (!matches || matches.length === 0) {
+            grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
+                <p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No Entry for this TRN</p>
+            </div>`;
             return;
         }
 
-        let batchAlert = "";
+        // --- BATCH DUPLICATE CHECK ---
+        let batchAlertHtml = "";
         try {
-            // Check for identical 10-match sets elsewhere in the database
             const allRes = await fetch(`/api/api?league=english`);
             const allData = await allRes.json();
-            const currentKey = getBatchKey(matches);
+            const currentFingerprint = generateBatchFingerprint(matches);
 
-            const duplicate = allData.find(record => 
-                (record.season !== current.season || record.trn !== current.trn) && 
-                getBatchKey(record.matches) === currentKey
+            // Find any other record with identical scores/teams
+            const duplicateBatch = allData.find(record => 
+                (record.season !== currentContext.season || 
+                 record.trn !== currentContext.trn || 
+                 record.week !== currentContext.week) &&
+                generateBatchFingerprint(record.matches) === currentFingerprint
             );
 
-            if (duplicate) {
-                batchAlert = `
-                    <div class="bg-amber-500/10 border-2 border-amber-500/50 p-6 rounded-2xl mb-6 flex items-center gap-6 shadow-[0_0_30px_-10px_rgba(245,158,11,0.3)]">
-                        <div class="bg-amber-500 text-slate-900 p-3 rounded-xl animate-bounce">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            if (duplicateBatch) {
+                batchAlertHtml = `
+                    <div class="bg-rose-500/10 border border-rose-500/50 p-4 rounded-xl mb-4 flex items-center gap-4 animate-pulse">
+                        <div class="bg-rose-500 p-2 rounded-lg text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-amber-500 font-black uppercase tracking-tighter text-lg">Sequence Repetition Warning</h3>
-                            <p class="text-slate-300 text-sm">This 10-match outcome set is 100% identical to <span class="text-white font-bold">Season ${duplicate.season} | TRN ${duplicate.trn} (W${duplicate.week})</span>.</p>
+                            <p class="text-rose-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Duplicate Batch Detected</p>
+                            <p class="text-slate-300 text-xs font-medium">This full set matches <span class="text-white">TRN ${duplicateBatch.trn} (W${duplicateBatch.week})</span> from Season <span class="text-white">${duplicateBatch.season}</span>.</p>
                         </div>
                     </div>`;
             }
-        } catch (e) {}
+        } catch (e) { console.error("Batch check error", e); }
 
-        const matchCards = await Promise.all(matches.map(async (m) => {
-            // Individual Match Historical Check
-            let histInfo = "";
+        // --- INDIVIDUAL MATCH CARDS ---
+        const matchCards = await Promise.all(matches.map(async (match) => {
+            let historicalBadge = "";
             try {
-                const hRes = await fetch(`/api/api?league=english&homeTeam=${m.homeTeam}&awayTeam=${m.awayTeam}`);
+                const hRes = await fetch(`/api/api?league=english&homeTeam=${match.homeTeam}&awayTeam=${match.awayTeam}`);
                 const hData = await hRes.json();
-                const prev = hData.find(i => i.season !== current.season || i.trn !== current.trn);
-                if (prev) {
-                    histInfo = `<div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center w-full">
-                        <span class="text-[9px] font-black text-slate-500 uppercase italic">Last Encounter:</span>
-                        <span class="text-[10px] font-black text-indigo-400">S${prev.season} T${prev.trn} (${prev.homeScore}-${prev.awayScore})</span>
-                    </div>`;
+                const duplicate = hData.find(item => 
+                    item.season !== currentContext.season || 
+                    item.trn !== currentContext.trn || 
+                    item.week !== currentContext.week
+                );
+
+                if (duplicate) {
+                    historicalBadge = `
+                        <div class="mt-3 pt-2 border-t border-slate-700/50 w-full flex justify-center items-center gap-2">
+                            <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Historical:</span>
+                            <div class="flex gap-1.5 text-[9px] font-black italic">
+                                <span class="text-indigo-400">S${duplicate.season}</span>
+                                <span class="text-rose-500">TRN ${duplicate.trn}</span>
+                                <span class="text-slate-300">W${duplicate.week}</span>
+                                <span class="text-white ml-1 bg-slate-950 px-1 rounded border border-slate-700">${duplicate.homeScore}-${duplicate.awayScore}</span>
+                            </div>
+                        </div>`;
                 }
-            } catch(e){}
+            } catch (err) { }
 
             return `
-                <div class="bg-slate-800/40 border border-slate-700/80 p-5 rounded-2xl hover:border-indigo-500/50 transition-all group">
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="flex-1 text-right text-sm md:text-base font-black uppercase tracking-tighter text-slate-300 group-hover:text-white transition">${m.homeTeam}</div>
-                        <div class="flex items-center gap-3 bg-slate-950 px-5 py-2 rounded-xl border border-slate-700 group-hover:border-indigo-500/30 transition shadow-inner">
-                            <span class="text-2xl font-black text-indigo-400">${m.homeScore}</span>
-                            <span class="text-[10px] font-bold text-slate-700">VS</span>
-                            <span class="text-2xl font-black text-rose-500">${m.awayScore}</span>
+                <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-slate-500/50">
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex-1 text-right pr-4">
+                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
                         </div>
-                        <div class="flex-1 text-left text-sm md:text-base font-black uppercase tracking-tighter text-slate-300 group-hover:text-white transition">${m.awayTeam}</div>
+                        <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
+                            <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
+                            <span class="text-slate-700 font-bold">VS</span>
+                            <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
+                        </div>
+                        <div class="flex-1 text-left pl-4">
+                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
+                        </div>
                     </div>
-                    ${histInfo}
+                    ${historicalBadge}
                 </div>`;
         }));
 
-        grid.innerHTML = batchAlert + `<div class="grid gap-3">${matchCards.join('')}</div>`;
+        grid.innerHTML = batchAlertHtml + matchCards.join('');
     }
 </script>
 </body>
