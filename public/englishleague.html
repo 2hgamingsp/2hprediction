@@ -12,11 +12,9 @@
             margin: 0; 
         }
         select option { background: #0f172a; }
-        .modal-animate { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .scanning-glow { animation: pulse 1.5s infinite; }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .modal-animate { transition: all 0.3s ease-out; }
+        input:invalid {
+        border-color: #ef4444;
         }
     </style>
 </head>
@@ -79,7 +77,13 @@
                 <div class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 flex items-center gap-2">
                     <span class="text-[8px] font-black text-slate-500 uppercase">Season</span>
                     <select id="seasonSelect" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer">
-                        </select>
+                        <script>
+                            for (let year = 2025; year <= 2060; year++) {
+                                let nextYear = (year + 1).toString().slice(-2);
+                                document.write(`<option value="${year}">${year}/${nextYear}</option>`);
+                            }
+                        </script>
+                    </select>
                 </div>
 
                 <div class="flex items-center bg-slate-950 border border-rose-500/40 rounded-lg p-1 shadow-lg shadow-rose-500/5">
@@ -91,7 +95,12 @@
                     <div class="flex flex-col items-center px-1">
                         <span class="text-[7px] font-black text-rose-500 uppercase tracking-tighter leading-none">TRN</span>
                         <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-rose-400 outline-none cursor-pointer appearance-none text-center min-w-[40px]">
-                            </select>
+                            <script>
+                                for (let t = 1; t <= 10000; t++) {
+                                    document.write(`<option value="${t}">${t}</option>`);
+                                }
+                            </script>
+                        </select>
                     </div>
                     <button type="button" onclick="stepValue('tournamentSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -109,7 +118,12 @@
                     <div class="flex flex-col items-center px-1">
                         <span class="text-[7px] font-black text-indigo-500 uppercase leading-none">Week</span>
                         <select id="weekSelect" class="bg-transparent text-xs font-bold text-indigo-400 outline-none cursor-pointer appearance-none text-center min-w-[30px]">
-                            </select>
+                            <script>
+                                for (let i = 1; i <= 36; i++) {
+                                    document.write(`<option value="${i}">${i}</option>`);
+                                }
+                            </script>
+                        </select>
                     </div>
                     <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-indigo-500/20 rounded transition text-indigo-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -136,8 +150,37 @@
                                 <th class="py-4 px-2 font-black text-right pr-4">Status</th>
                             </tr>
                         </thead>
-                        <tbody id="matchRows" class="divide-y divide-slate-700/30">
-                            </tbody>
+                        <tbody class="divide-y divide-slate-700/30">
+                            <script>
+                                for (let i = 1; i <= 10; i++) {
+                                    document.write(`
+                                        <tr class="group hover:bg-white/[0.02] transition-colors">
+                                            <td class="py-4 px-2 text-slate-600 font-black text-[10px] md:text-xs">${i}</td>
+                                            <td class="py-4 px-2">
+                                                <input list="english-clubs" type="text" placeholder="HOME" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-indigo-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <div class="inline-flex items-center bg-slate-950 p-1 md:p-2 rounded-lg border-b-2 border-indigo-600">
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                    <span class="text-slate-600 font-bold px-1 md:px-2">-</span>
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <input list="english-clubs" type="text" placeholder="AWAY" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-rose-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2 text-right pr-4">
+                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-1 py-1 md:px-2 md:py-2 text-[8px] md:text-[10px] font-bold text-emerald-500 outline-none uppercase cursor-pointer">
+                                                    <option value="FT">FT</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    `);
+                                }
+                            </script>
+                        </tbody>
                     </table>
                 </div>
 
@@ -158,7 +201,7 @@
 
                     <div class="flex gap-4 w-full md:w-auto">
                         <button type="reset" class="flex-1 md:px-8 py-3 text-slate-500 hover:text-rose-500 font-black text-xs uppercase transition">Clear</button>
-                        <button type="submit" id="submitBtn" class="flex-1 md:px-12 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
+                        <button type="submit" class="flex-1 md:px-12 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
                             Sync TRN Data
                         </button>
                     </div>
@@ -185,86 +228,40 @@
     </datalist>
 
 <script>
-// --- INITIALIZATION & UI GENERATION ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Populate Seasons
-    const seasonSelect = document.getElementById('seasonSelect');
-    for (let year = 2025; year <= 2060; year++) {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = `${year}/${(year + 1).toString().slice(-2)}`;
-        seasonSelect.appendChild(option);
-    }
-
-    // Populate Tournament Indices
-    const trnSelect = document.getElementById('tournamentSelect');
-    for (let t = 1; t <= 10000; t++) {
-        const option = document.createElement('option');
-        option.value = t;
-        option.textContent = t;
-        trnSelect.appendChild(option);
-    }
-
-    // Populate Weeks
-    const weekSelect = document.getElementById('weekSelect');
-    for (let w = 1; w <= 36; w++) {
-        const option = document.createElement('option');
-        option.value = w;
-        option.textContent = w;
-        weekSelect.appendChild(option);
-    }
-
-    // Generate Table Rows
-    const tbody = document.getElementById('matchRows');
-    for (let i = 1; i <= 10; i++) {
-        const row = `
-            <tr class="group hover:bg-white/[0.02] transition-colors">
-                <td class="py-4 px-2 text-slate-600 font-black text-[10px] md:text-xs">${i}</td>
-                <td class="py-4 px-2">
-                    <input list="english-clubs" type="text" placeholder="HOME" 
-                        class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-indigo-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
-                </td>
-                <td class="py-4 px-2">
-                    <div class="inline-flex items-center bg-slate-950 p-1 md:p-2 rounded-lg border-b-2 border-indigo-600">
-                        <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
-                        <span class="text-slate-600 font-bold px-1 md:px-2">-</span>
-                        <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
-                    </div>
-                </td>
-                <td class="py-4 px-2">
-                    <input list="english-clubs" type="text" placeholder="AWAY" 
-                        class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-rose-400 focus:ring-2 focus:ring-indigo-500 outline-none uppercase transition-all text-center">
-                </td>
-                <td class="py-4 px-2 text-right pr-4">
-                    <select class="bg-slate-900 border border-slate-700 rounded-md px-1 py-1 md:px-2 md:py-2 text-[8px] md:text-[10px] font-bold text-emerald-500 outline-none uppercase cursor-pointer">
-                        <option value="FT">FT</option>
-                    </select>
-                </td>
-            </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
-    }
-});
-
 // --- STATE MANAGEMENT ---
 let pendingBatchData = null;
 
+// HELPER: Fingerprinting Toolkit
 function getFingerprints(matches) {
-    const process = (m) => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`;
-    const processPair = (m) => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`;
-    
-    return {
-        exact: matches.map(process).join('|'),
-        scrambled: [...matches].map(process).sort().join('|'),
-        outcome: matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|'),
-        pairingSeq: matches.map(processPair).join('|'),
-        pairingScrambled: [...matches].map(processPair).sort().join('|')
-    };
+    // 1. Exact Fingerprint (Order Matters)
+    const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 2. Scrambled Fingerprint (Order Doesn't Matter)
+    const scrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    // 3. Outcome Pattern (Scores Only - Order Matters)
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+
+    // 4. Pairing Pattern (Teams Only - Order Matters)
+    const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 5. Pairing Pattern (Teams Only - Order Doesn't Matter)
+    const pairingScrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
 }
 
 // UI Helpers
 function stepValue(id, direction) {
     const el = document.getElementById(id);
-    const nextIndex = el.selectedIndex + direction;
+    const currentIndex = el.selectedIndex;
+    const nextIndex = currentIndex + direction;
     if (nextIndex >= 0 && nextIndex < el.options.length) {
         el.selectedIndex = nextIndex;
     }
@@ -276,12 +273,14 @@ function closeModal() {
     setTimeout(() => modal.classList.add('hidden'), 300);
 }
 
-function closeDuplicateModal(proceed = false) {
+function closeDuplicateModal(proceedWithSync = false) {
     const modal = document.getElementById('duplicateModal');
     modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
     setTimeout(() => {
         modal.classList.add('hidden');
-        if (proceed && pendingBatchData) executeFinalSync(pendingBatchData);
+        if (proceedWithSync && pendingBatchData) {
+            executeFinalSync(pendingBatchData);
+        }
     }, 300);
 }
 
@@ -290,30 +289,54 @@ function showDuplicateModal(type, pastRecord, batchData) {
     const modal = document.getElementById('duplicateModal');
     const content = document.getElementById('duplicateContent');
     
-    const config = {
-        'EXACT': { title: "EXACT SEQUENCE MATCH", color: "indigo", msg: `Full match! Identical to S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week}).` },
-        'SCRAMBLED': { title: "REARRANGED SEQUENCE", color: "amber", msg: `Same 10 outcomes exist in S${pastRecord.season} TRN ${pastRecord.trn}, but shuffled.` },
-        'OUTCOME': { title: "SCORE PATTERN MATCH", color: "rose", msg: `The scoreline sequence matches S${pastRecord.season} TRN ${pastRecord.trn} exactly.` },
-        'PAIRING_SEQ': { title: "IDENTICAL FIXTURE LIST", color: "cyan", msg: `Pairings match S${pastRecord.season} TRN ${pastRecord.trn} order, scores differ.` },
-        'PAIRING_SCRAMBLED': { title: "MATCHUP REPETITION", color: "emerald", msg: `The same 10 matchups occurred in S${pastRecord.season} TRN ${pastRecord.trn}.` }
-    };
+    let title = "Duplicate Found";
+    let message = "";
+    let colorClass = "indigo";
 
-    const { title, color, msg } = config[type];
+    switch(type) {
+        case 'EXACT':
+            title = "EXACT SEQUENCE MATCH";
+            message = `Full match! Teams and Scores are identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week})</span>.`;
+            break;
+        case 'SCRAMBLED':
+            title = "REARRANGED SEQUENCE";
+            colorClass = "amber";
+            message = `All 10 matchups and scores exist in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but in a different order.`;
+            break;
+        case 'OUTCOME':
+            title = "SCORE PATTERN MATCH";
+            colorClass = "rose";
+            message = `The 10 scores (e.g., 2-1, 0-0...) match <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span> exactly, but teams differ.`;
+            break;
+        case 'PAIRING_SEQ':
+            title = "IDENTICAL FIXTURE LIST";
+            colorClass = "cyan";
+            message = `The 10 pairings (Home vs Away) are in the same order as <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but with different scores.`;
+            break;
+        case 'PAIRING_SCRAMBLED':
+            title = "MATCHUP REPETITION";
+            colorClass = "emerald";
+            message = `The same 10 matchups occurred in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span> in a different order.`;
+            break;
+    }
+
+    // Dynamic Tailwind class injection (Note: for production, ensure these colors are in your safelist)
     content.innerHTML = `
-        <div class="bg-${color}-500/20 border border-${color}-500/50 p-4 rounded-xl mb-4">
-            <p class="text-${color}-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ ${title}</p>
-            <p class="text-white text-xs leading-relaxed">${msg}</p>
+        <div class="bg-${colorClass}-500/20 border border-${colorClass}-500/50 p-4 rounded-xl mb-4">
+            <p class="text-${colorClass}-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ ${title}</p>
+            <p class="text-white text-xs leading-relaxed">${message}</p>
         </div>
-        <p class="text-slate-400 text-[10px] uppercase font-bold text-center italic">Historical pattern detected. Record anyway?</p>`;
+        <p class="text-slate-400 text-[10px] uppercase font-bold text-center italic">Historical pattern detected. Record anyway?</p>
+    `;
     
     modal.classList.remove('hidden');
     setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
 }
 
 async function executeFinalSync(batchData) {
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="scanning-glow">SYNCING...</span>`;
+    const syncBtn = document.querySelector('button[type="submit"]');
+    syncBtn.disabled = true;
+    syncBtn.innerText = "SYNCING...";
 
     try {
         const response = await fetch('/api/api', {
@@ -323,87 +346,130 @@ async function executeFinalSync(batchData) {
         });
 
         if (response.ok) {
-            document.getElementById('successModal').classList.remove('hidden');
-            setTimeout(() => document.querySelector('#successModal .modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+            const modal = document.getElementById('successModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
             document.getElementById('matchForm').reset();
         } else {
             alert("Database Error: Sync Failed");
         }
     } catch (e) {
-        alert("Network Error: Check Connection");
+        alert("Network Error");
     } finally {
-        btn.disabled = false;
-        btn.innerText = "Sync TRN Data";
+        syncBtn.disabled = false;
+        syncBtn.innerText = "Sync TRN Data";
         pendingBatchData = null;
     }
 }
 
+// --- CORE DETECTION LOGIC ---
 async function checkHistory(currentMatches) {
     try {
         const response = await fetch(`/api/api?league=english`);
         const allData = await response.json();
-        const cur = getFingerprints(currentMatches);
+        const currentKeys = getFingerprints(currentMatches);
 
         for (const record of allData) {
-            const past = record.matches || record.allMatches;
-            if (!past || past.length !== 10) continue;
-            const p = getFingerprints(past);
+            const pastMatches = record.matches || record.allMatches;
+            if (!pastMatches || pastMatches.length !== 10) continue;
 
-            if (cur.exact === p.exact) return { type: 'EXACT', record };
-            if (cur.scrambled === p.scrambled) return { type: 'SCRAMBLED', record };
-            if (cur.outcome === p.outcome) return { type: 'OUTCOME', record };
-            if (cur.pairingSeq === p.pairingSeq) return { type: 'PAIRING_SEQ', record };
-            if (cur.pairingScrambled === p.pairingScrambled) return { type: 'PAIRING_SCRAMBLED', record };
+            const pastKeys = getFingerprints(pastMatches);
+
+            // Level 1: Exact Match (Teams + Scores + Order)
+            if (currentKeys.exact === pastKeys.exact) return { type: 'EXACT', record };
+
+            // Level 2: Scrambled Match (Teams + Scores, different order)
+            if (currentKeys.scrambled === pastKeys.scrambled) return { type: 'SCRAMBLED', record };
+
+            // Level 3: Outcome Match (Scores only, same order)
+            if (currentKeys.outcome === pastKeys.outcome) return { type: 'OUTCOME', record };
+
+            // Level 4: Pairing Sequential (Same matchups, same order, different scores)
+            if (currentKeys.pairingSeq === pastKeys.pairingSeq) return { type: 'PAIRING_SEQ', record };
+
+            // Level 5: Pairing Scrambled (Same matchups, any order, different scores)
+            if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) return { type: 'PAIRING_SCRAMBLED', record };
         }
-    } catch (e) { console.error("History Check Failed", e); }
-    return null; 
+        return null; 
+    } catch (e) { return null; }
 }
 
-// --- MAIN SUBMIT HANDLER ---
 document.getElementById('matchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    const rows = document.querySelectorAll('#matchRows tr');
+    const season = document.getElementById('seasonSelect').value;
+    const trn = document.getElementById('tournamentSelect').value;
+    const week = document.getElementById('weekSelect').value;
+    const league = document.getElementById('leagueId').value;
+    const rows = document.querySelectorAll('tbody tr');
+    
     const matchesArray = [];
-    let isValid = true;
+    const usedTeams = new Set(); // To track unique teams
+    let isFormValid = true;
+    let duplicateTeam = null;
 
-    rows.forEach((row, idx) => {
+    for (let [index, row] of rows.entries()) {
         const inputs = row.querySelectorAll('input');
         const home = inputs[0].value.trim().toUpperCase();
-        const away = inputs[2].value.trim().toUpperCase();
-        if (!home || !away) isValid = false;
+        const away = inputs[3].value.trim().toUpperCase();
+
+        // 1. Basic Empty Check
+        if (!home || !away) {
+            isFormValid = false;
+            break;
+        }
+
+        // 2. Same-Row Check (e.g., BOU vs BOU)
+        if (home === away) {
+            alert(`Row ${index + 1}: A team cannot play against itself (${home}).`);
+            return;
+        }
+
+        // 3. Global Duplicate Check (The BOU issue)
+        if (usedTeams.has(home)) {
+            duplicateTeam = home;
+            break;
+        }
+        usedTeams.add(home);
+
+        if (usedTeams.has(away)) {
+            duplicateTeam = away;
+            break;
+        }
+        usedTeams.add(away);
 
         matchesArray.push({
-            slot: idx + 1,
+            slot: index + 1,
             homeTeam: home,
             homeScore: parseInt(inputs[1].value) || 0,
-            awayScore: parseInt(row.querySelectorAll('input')[2].value) || 0, // Adjusted index
-            awayScore: parseInt(row.querySelector('td:nth-child(3) input:last-child').value) || 0,
+            awayScore: parseInt(inputs[2].value) || 0,
             awayTeam: away,
             status: row.querySelector('select').value
         });
-    });
+    }
 
-    if (!isValid) return alert("⚠️ Please fill all match slots.");
+    // Error Handling
+    if (!isFormValid) {
+        alert("⚠️ Fill all 10 match slots.");
+        return;
+    }
 
-    const batchData = {
-        league: document.getElementById('leagueId').value,
-        season: document.getElementById('seasonSelect').value,
-        trn: document.getElementById('tournamentSelect').value,
-        week: document.getElementById('weekSelect').value,
-        matches: matchesArray
-    };
+    if (duplicateTeam) {
+        alert(`❌ INVALID DATA: Team "${duplicateTeam}" appears more than once in this batch. Each team can only play one match per week.`);
+        return;
+    }
 
-    btn.disabled = true;
-    btn.innerHTML = `<span class="scanning-glow">SCANNING DATABASE...</span>`;
+    // If we pass all checks, proceed to Database Scanning
+    const batchData = { league, season, trn, week, matches: matchesArray };
+    const syncBtn = e.target.querySelector('button[type="submit"]');
+    syncBtn.innerText = "DATABASE SCANNING...";
+    syncBtn.disabled = true;
     
-    const history = await checkHistory(matchesArray);
+    const historyResult = await checkHistory(matchesArray);
 
-    btn.disabled = false;
-    btn.innerText = "Sync TRN Data";
-
-    if (history) {
-        showDuplicateModal(history.type, history.record, batchData);
+    syncBtn.disabled = false;
+    if (historyResult) {
+        syncBtn.innerText = "Sync TRN Data";
+        showDuplicateModal(historyResult.type, historyResult.record, batchData);
     } else {
         executeFinalSync(batchData);
     }

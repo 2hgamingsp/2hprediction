@@ -99,199 +99,212 @@
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
                 <p id="loadingText" class="text-slate-500 font-black text-xs uppercase tracking-widest">Querying TRN Database...</p>
             </div>
+
             <div id="resultsGrid" class="hidden grid gap-3"></div>
         </div>
     </main>
 
 <script>
-    let fetchController = null;
+   let fetchController = null;
 
-    // --- FINGERPRINTING LOGIC ---
-    function getFingerprints(matches) {
-        if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
-        const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
-        const scrambled = [...matches].map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).sort().join('|');
-        const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
-        const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
-        const pairingScrambled = [...matches].map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).sort().join('|');
-        return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
+// --- ADVANCED FINGERPRINTING ---
+function getFingerprints(matches) {
+    if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
+    
+    // 1. Exact (Teams + Scores + Order)
+    const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 2. Scrambled (Teams + Scores, Any Order)
+    const scrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    // 3. Outcome (Scores only, Order matters)
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+
+    // 4. Pairing Sequential (Teams Only, Order matters)
+    const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 5. Pairing Scrambled (Teams Only, Any order)
+    const pairingScrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
+}
+
+function navigateToOriginal(season, trn, week) {
+    document.getElementById('seasonSelect').value = season;
+    document.getElementById('trnSelect').value = trn;
+    document.getElementById('weekSelect').value = week;
+    triggerFetch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function stepValue(id, direction) {
+    const el = document.getElementById(id);
+    const currentIndex = el.selectedIndex;
+    const nextIndex = currentIndex + direction;
+    if (nextIndex >= 0 && nextIndex < el.options.length) {
+        el.selectedIndex = nextIndex;
+        triggerFetch(); // Automatically fetch when using arrows
     }
+}
 
-    // --- NAVIGATION CONTROLS ---
-    function navigateToOriginal(season, trn, week) {
-        document.getElementById('seasonSelect').value = season;
-        document.getElementById('trnSelect').value = trn;
-        document.getElementById('weekSelect').value = week;
-        triggerFetch();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+window.onload = () => {
+    const saved = JSON.parse(localStorage.getItem('terminal_last_view'));
+    if (saved) {
+        document.getElementById('seasonSelect').value = saved.season;
+        document.getElementById('trnSelect').value = saved.trn;
+        document.getElementById('weekSelect').value = saved.week;
     }
+    triggerFetch();
+};
 
-    function stepValue(id, direction) {
-        const el = document.getElementById(id);
-        const nextIndex = el.selectedIndex + direction;
-        if (nextIndex >= 0 && nextIndex < el.options.length) {
-            el.selectedIndex = nextIndex;
-            triggerFetch();
+function triggerFetch() {
+    const season = document.getElementById('seasonSelect').value;
+    const trn = document.getElementById('trnSelect').value;
+    const week = document.getElementById('weekSelect').value;
+    localStorage.setItem('terminal_last_view', JSON.stringify({ season, trn, week }));
+    fetchResults(season, trn, week);
+}
+
+async function fetchResults(season, trn, week) {
+    const grid = document.getElementById('resultsGrid');
+    const loader = document.getElementById('loadingState');
+    const loadingText = document.getElementById('loadingText');
+
+    if (fetchController) fetchController.abort();
+    fetchController = new AbortController();
+    const { signal } = fetchController;
+
+    grid.style.opacity = "0.4"; 
+    loader.classList.remove('hidden');
+    loadingText.innerText = `SCANNING TRN ${trn} | WEEK ${week}`;
+
+    try {
+        const queryParams = `season=${season}&trn=${trn}&week=${week}&league=english`;
+        const response = await fetch(`/api/api?${queryParams}`, { signal });
+        const data = await response.json();
+
+        grid.style.opacity = "1";
+        loader.classList.add('hidden');
+        grid.classList.remove('hidden');
+
+        if (data && data.length > 0) {
+            renderResults(data[0].matches, { season, trn, week });
+        } else {
+            renderResults([], {});
         }
+
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        grid.style.opacity = "1";
+        grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase tracking-widest">Database Error: Connection Refused</div>`;
+        loader.classList.add('hidden');
+    }
+}
+
+async function renderResults(matches, currentContext) {
+    const grid = document.getElementById('resultsGrid');
+    
+    if (!matches || matches.length === 0) {
+        grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
+            <p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No Database Entry Found</p>
+        </div>`;
+        return;
     }
 
-    // --- DATA FETCHING ---
-    window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem('terminal_last_view'));
-        if (saved) {
-            document.getElementById('seasonSelect').value = saved.season;
-            document.getElementById('trnSelect').value = saved.trn;
-            document.getElementById('weekSelect').value = saved.week;
-        }
-        triggerFetch();
-    };
+    let alertHtml = "";
 
-    function triggerFetch() {
-        const season = document.getElementById('seasonSelect').value;
-        const trn = document.getElementById('trnSelect').value;
-        const week = document.getElementById('weekSelect').value;
-        localStorage.setItem('terminal_last_view', JSON.stringify({ season, trn, week }));
-        fetchResults(season, trn, week);
-    }
+    // --- CROSS-SEASON DETECTION ---
+    try {
+        const allRes = await fetch(`/api/api?league=english`);
+        const allData = await allRes.json();
+        const currentKeys = getFingerprints(matches);
 
-    async function fetchResults(season, trn, week) {
-        const grid = document.getElementById('resultsGrid');
-        const loader = document.getElementById('loadingState');
-        const loadingText = document.getElementById('loadingText');
+        let duplicateFound = null;
+        let matchType = ""; 
+        let color = "indigo";
 
-        if (fetchController) fetchController.abort();
-        fetchController = new AbortController();
-        const { signal } = fetchController;
+        for (const record of allData) {
+            // Skip current view
+            if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
 
-        grid.style.opacity = "0.4"; 
-        loader.classList.remove('hidden');
-        loadingText.innerText = `SCANNING TRN ${trn} | WEEK ${week}`;
+            const pastMatches = record.matches || record.allMatches;
+            if (!pastMatches) continue;
+            
+            const pastKeys = getFingerprints(pastMatches);
 
-        try {
-            const queryParams = `season=${season}&trn=${trn}&week=${week}&league=english`;
-            const response = await fetch(`/api/api?${queryParams}`, { signal });
-            const data = await response.json();
-
-            grid.style.opacity = "1";
-            loader.classList.add('hidden');
-            grid.classList.remove('hidden');
-
-            if (data && data.length > 0) {
-                renderResults(data[0].matches, { season, trn, week });
-            } else {
-                renderResults([], {});
+            if (currentKeys.exact === pastKeys.exact) {
+                duplicateFound = record;
+                matchType = "EXACT SEQUENCE MATCH";
+                color = "indigo";
+                break; 
+            } else if (currentKeys.scrambled === pastKeys.scrambled) {
+                duplicateFound = record;
+                matchType = "REARRANGED SEQUENCE";
+                color = "amber";
+            } else if (currentKeys.pairingSeq === pastKeys.pairingSeq && !duplicateFound) {
+                duplicateFound = record;
+                matchType = "IDENTICAL FIXTURE LIST";
+                color = "cyan";
+            } else if (currentKeys.pairingScrambled === pastKeys.pairingScrambled && !duplicateFound) {
+                duplicateFound = record;
+                matchType = "MATCHUP REPETITION";
+                color = "emerald";
+            } else if (currentKeys.outcome === pastKeys.outcome && !duplicateFound) {
+                duplicateFound = record;
+                matchType = "SCORE PATTERN MATCH";
+                color = "rose";
             }
-        } catch (error) {
-            if (error.name === 'AbortError') return;
-            grid.style.opacity = "1";
-            grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase tracking-widest">Database Error: Connection Refused</div>`;
-            loader.classList.add('hidden');
-        }
-    }
-
-    // --- RENDERING WITH NOTIFICATION LOGIC ---
-    async function renderResults(matches, currentContext) {
-        const grid = document.getElementById('resultsGrid');
-        
-        if (!matches || matches.length === 0) {
-            grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
-                <p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No Database Entry Found</p>
-            </div>`;
-            return;
         }
 
-        let alertHtml = "";
-
-        try {
-            const allRes = await fetch(`/api/api?league=english`);
-            const allData = await allRes.json();
-            const currentKeys = getFingerprints(matches);
-
-            let duplicateFound = null;
-            let matchType = ""; 
-            // Mapping colors to ensure Tailwind includes them
-            const colorMap = {
-                indigo: { bg: 'bg-indigo-600', border: 'border-indigo-400' },
-                amber: { bg: 'bg-amber-600', border: 'border-amber-400' },
-                cyan: { bg: 'bg-cyan-600', border: 'border-cyan-400' },
-                emerald: { bg: 'bg-emerald-600', border: 'border-emerald-400' },
-                rose: { bg: 'bg-rose-600', border: 'border-rose-400' }
-            };
-            let activeColor = colorMap.indigo;
-
-            for (const record of allData) {
-                if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
-                const pastMatches = record.matches || record.allMatches;
-                if (!pastMatches) continue;
-                const pastKeys = getFingerprints(pastMatches);
-
-                if (currentKeys.exact === pastKeys.exact) {
-                    duplicateFound = record;
-                    matchType = "EXACT SEQUENCE MATCH";
-                    activeColor = colorMap.indigo;
-                    break; 
-                } else if (currentKeys.scrambled === pastKeys.scrambled) {
-                    duplicateFound = record;
-                    matchType = "REARRANGED SEQUENCE";
-                    activeColor = colorMap.amber;
-                } else if (currentKeys.pairingSeq === pastKeys.pairingSeq && !duplicateFound) {
-                    duplicateFound = record;
-                    matchType = "IDENTICAL FIXTURE LIST";
-                    activeColor = colorMap.cyan;
-                } else if (currentKeys.pairingScrambled === pastKeys.pairingScrambled && !duplicateFound) {
-                    duplicateFound = record;
-                    matchType = "MATCHUP REPETITION";
-                    activeColor = colorMap.emerald;
-                } else if (currentKeys.outcome === pastKeys.outcome && !duplicateFound) {
-                    duplicateFound = record;
-                    matchType = "SCORE PATTERN MATCH";
-                    activeColor = colorMap.rose;
-                }
-            }
-
-            if (duplicateFound) {
-                alertHtml = `
-                    <div class="${activeColor.bg} border-l-4 ${activeColor.border} p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div class="flex items-center gap-4">
-                                <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-white text-lg font-black uppercase tracking-tighter">${matchType}</h3>
-                                    <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">Identified in S${duplicateFound.season} TRN ${duplicateFound.trn} Week ${duplicateFound.week}</p>
-                                </div>
+        if (duplicateFound) {
+            alertHtml = `
+                <div class="bg-${color}-600 border-l-4 border-${color}-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
                             </div>
-                            <button onclick="navigateToOriginal('${duplicateFound.season}', '${duplicateFound.trn}', '${duplicateFound.week}')" 
-                                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
-                                Jump to Record
-                            </button>
+                            <div>
+                                <h3 class="text-white text-lg font-black uppercase tracking-tighter">${matchType}</h3>
+                                <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">Identified in S${duplicateFound.season} TRN ${duplicateFound.trn} Week ${duplicateFound.week}</p>
+                            </div>
                         </div>
-                    </div>`;
-            }
-        } catch (e) { console.error("Cross-check error:", e); }
+                        <button onclick="navigateToOriginal('${duplicateFound.season}', '${duplicateFound.trn}', '${duplicateFound.week}')" 
+                            class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
+                            Jump to Record
+                        </button>
+                    </div>
+                </div>`;
+        }
+    } catch (e) { console.error("Cross-check error:", e); }
 
-        const matchCards = matches.map((match) => `
-            <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
-                <div class="flex items-center justify-between w-full">
-                    <div class="flex-1 text-right pr-4">
-                        <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
-                    </div>
-                    <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
-                        <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
-                        <span class="text-slate-700 font-bold text-[10px]">VS</span>
-                        <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
-                    </div>
-                    <div class="flex-1 text-left pl-4">
-                        <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
-                    </div>
+    const matchCards = matches.map((match) => `
+        <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
+            <div class="flex items-center justify-between w-full">
+                <div class="flex-1 text-right pr-4">
+                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
                 </div>
-            </div>`).join('');
+                <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
+                    <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
+                    <span class="text-slate-700 font-bold text-[10px]">VS</span>
+                    <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
+                </div>
+                <div class="flex-1 text-left pl-4">
+                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
+                </div>
+            </div>
+        </div>`).join('');
 
-        grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
-    }
+    grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
+}
 </script>
 </body>
 </html>
