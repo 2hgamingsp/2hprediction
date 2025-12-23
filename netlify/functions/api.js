@@ -13,18 +13,26 @@ const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
 async function connectToDatabase() {
-    if (cachedClient) return cachedClient;
-    if (!uri) throw new Error("MONGODB_URI is not defined");
-    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
-    await client.connect();
-    cachedClient = client;
-    return client;
-}
-
-function getCollectionName(league) {
-    if (!league) return "matches"; 
-    const cleanLeague = league.toLowerCase().trim();
-    return `${cleanLeague}_matches`;
+    if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
+        return cachedClient;
+    }
+    if (!uri) {
+        console.error("FATAL: MONGODB_URI is missing from Environment Variables");
+        throw new Error("MONGODB_URI is not defined");
+    }
+    try {
+        const client = new MongoClient(uri, { 
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 10000 
+        });
+        await client.connect();
+        console.log("MongoDB Connected Successfully");
+        cachedClient = client;
+        return client;
+    } catch (err) {
+        console.error("MongoDB Connection Failed:", err.message);
+        throw err;
+    }
 }
 
 // --- GET ROUTE (OPTIMIZED FOR TIMELINE) ---
@@ -86,7 +94,7 @@ app.get("/api/api", async (req, res) => {
 
         // If specific TRN or Season is requested, return everything found (no limit)
         // If it's a general "fetch everything" request, keep the 1000 limit
-        const limitValue = (season || trn) ? 0 : 1000;
+        const limitValue = (season || trn || week) ? 5000 : 1000;
         const results = await cursor.limit(limitValue).toArray();
 
         res.status(200).json(results);
