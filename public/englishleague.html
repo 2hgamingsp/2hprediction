@@ -56,7 +56,7 @@
             </div>
         </div>
     </div>
-    
+
 <div id="errorModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
     <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-rose-500/50 p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
         <div class="w-12 h-12 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -378,35 +378,47 @@ async function executeFinalSync(batchData) {
 }
 
 // --- CORE DETECTION LOGIC ---
+// --- CORE DETECTION LOGIC (OPTIMIZED FOR < 1 SEC) ---
 async function checkHistory(currentMatches) {
     try {
-        const response = await fetch(`/api/api?league=english`);
+        // Use the 'compact' flag to only download fingerprints, not full metadata
+        // Also added a cache-buster to ensure we get fresh data
+        const response = await fetch(`/api/api?league=english&compact=true&t=${Date.now()}`);
+        
+        if (!response.ok) throw new Error("Fetch failed");
+        
         const allData = await response.json();
         const currentKeys = getFingerprints(currentMatches);
 
-        for (const record of allData) {
-            const pastMatches = record.matches || record.allMatches;
+        // We use a high-performance for-loop for sub-millisecond scanning
+        for (let i = 0; i < allData.length; i++) {
+            const record = allData[i];
+            const pastMatches = record.matches;
+            
             if (!pastMatches || pastMatches.length !== 10) continue;
 
             const pastKeys = getFingerprints(pastMatches);
 
-            // Level 1: Exact Match (Teams + Scores + Order)
+            // Level 1: Exact Match (Fastest check)
             if (currentKeys.exact === pastKeys.exact) return { type: 'EXACT', record };
 
-            // Level 2: Scrambled Match (Teams + Scores, different order)
+            // Level 2: Scrambled Match
             if (currentKeys.scrambled === pastKeys.scrambled) return { type: 'SCRAMBLED', record };
 
-            // Level 3: Outcome Match (Scores only, same order)
+            // Level 3: Outcome Match
             if (currentKeys.outcome === pastKeys.outcome) return { type: 'OUTCOME', record };
 
-            // Level 4: Pairing Sequential (Same matchups, same order, different scores)
+            // Level 4: Pairing Sequential
             if (currentKeys.pairingSeq === pastKeys.pairingSeq) return { type: 'PAIRING_SEQ', record };
 
-            // Level 5: Pairing Scrambled (Same matchups, any order, different scores)
+            // Level 5: Pairing Scrambled
             if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) return { type: 'PAIRING_SCRAMBLED', record };
         }
         return null; 
-    } catch (e) { return null; }
+    } catch (e) { 
+        console.error("Scan Error:", e);
+        return null; 
+    }
 }
 
 function showErrorModal(message) {

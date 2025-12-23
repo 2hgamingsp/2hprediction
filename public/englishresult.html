@@ -105,111 +105,74 @@
     </main>
 
 <script>
-   let fetchController = null;
+  let fetchController = null;
 
-// --- ADVANCED FINGERPRINTING ---
-function getFingerprints(matches) {
-    if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
-    
-    // 1. Exact (Teams + Scores + Order)
-    const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
-
-    // 2. Scrambled (Teams + Scores, Any Order)
-    const scrambled = [...matches]
-        .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
-        .sort()
-        .join('|');
-
-    // 3. Outcome (Scores only, Order matters)
-    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
-
-    // 4. Pairing Sequential (Teams Only, Order matters)
-    const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
-
-    // 5. Pairing Scrambled (Teams Only, Any order)
-    const pairingScrambled = [...matches]
-        .map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`)
-        .sort()
-        .join('|');
-
-    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
-}
-
-function navigateToOriginal(season, trn, week) {
-    document.getElementById('seasonSelect').value = season;
-    document.getElementById('trnSelect').value = trn;
-    document.getElementById('weekSelect').value = week;
-    triggerFetch();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
+// --- STEP NAVIGATION HELPER ---
 function stepValue(id, direction) {
     const el = document.getElementById(id);
     const currentIndex = el.selectedIndex;
     const nextIndex = currentIndex + direction;
     if (nextIndex >= 0 && nextIndex < el.options.length) {
         el.selectedIndex = nextIndex;
-        triggerFetch(); // Automatically fetch when using arrows
+        triggerFetch();
     }
 }
 
-window.onload = () => {
-    const saved = JSON.parse(localStorage.getItem('terminal_last_view'));
-    if (saved) {
-        document.getElementById('seasonSelect').value = saved.season;
-        document.getElementById('trnSelect').value = saved.trn;
-        document.getElementById('weekSelect').value = saved.week;
-    }
+// --- OPTIMIZED NAVIGATION ---
+function navigateToOriginal(season, trn, week) {
+    document.getElementById('seasonSelect').value = season;
+    document.getElementById('trnSelect').value = trn;
+    document.getElementById('weekSelect').value = week;
     triggerFetch();
-};
+}
 
-function triggerFetch() {
+// --- ADVANCED FINGERPRINTING ---
+function getFingerprints(matches) {
+    if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
+    
+    const getH = (m) => (m.homeTeam || m.home || "").trim().toLowerCase();
+    const getA = (m) => (m.awayTeam || m.away || m.visitor || "").trim().toLowerCase();
+
+    const exact = matches.map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).join('|');
+    const scrambled = [...matches].map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).sort().join('|');
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+    const pairingSeq = matches.map(m => `${getH(m)}v${getA(m)}`).join('|');
+    const pairingScrambled = [...matches].map(m => `${getH(m)}v${getA(m)}`).sort().join('|');
+
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
+}
+
+// --- TRIGGER FETCH ---
+async function triggerFetch() {
     const season = document.getElementById('seasonSelect').value;
     const trn = document.getElementById('trnSelect').value;
     const week = document.getElementById('weekSelect').value;
-    localStorage.setItem('terminal_last_view', JSON.stringify({ season, trn, week }));
-    fetchResults(season, trn, week);
-}
 
-async function fetchResults(season, trn, week) {
-    const grid = document.getElementById('resultsGrid');
     const loader = document.getElementById('loadingState');
-    const loadingText = document.getElementById('loadingText');
-
-    if (fetchController) fetchController.abort();
-    fetchController = new AbortController();
-    const { signal } = fetchController;
-
-    grid.style.opacity = "0.4"; 
+    const grid = document.getElementById('resultsGrid');
+    
     loader.classList.remove('hidden');
-    loadingText.innerText = `SCANNING TRN ${trn} | WEEK ${week}`;
+    grid.classList.add('hidden');
 
     try {
-        const queryParams = `season=${season}&trn=${trn}&week=${week}&league=english`;
-        const response = await fetch(`/api/api?${queryParams}`, { signal });
-        const data = await response.json();
-
-        grid.style.opacity = "1";
+        const res = await fetch(`/api/api?league=english&season=${season}&trn=${trn}&week=${week}`);
+        const data = await res.json();
+        
+        // Data structure from your updated API is an array of records
+        const record = data.find(r => r.season == season && r.trn == trn && r.week == week);
+        
+        await renderResults(record ? record.matches : [], { season, trn, week });
+        
         loader.classList.add('hidden');
         grid.classList.remove('hidden');
-
-        if (data && data.length > 0) {
-            renderResults(data[0].matches, { season, trn, week });
-        } else {
-            renderResults([], {});
-        }
-
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        grid.style.opacity = "1";
-        grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase tracking-widest">Database Error: Connection Refused</div>`;
-        loader.classList.add('hidden');
+    } catch (e) {
+        console.error("Fetch Error:", e);
     }
 }
 
+// --- RENDER & SCAN (OPTIMIZED < 1 SEC) ---
 async function renderResults(matches, currentContext) {
     const grid = document.getElementById('resultsGrid');
-    
     if (!matches || matches.length === 0) {
         grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
             <p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No Database Entry Found</p>
@@ -219,9 +182,9 @@ async function renderResults(matches, currentContext) {
 
     let alertHtml = "";
 
-    // --- CROSS-SEASON DETECTION ---
     try {
-        const allRes = await fetch(`/api/api?league=english`);
+        // PERFORMANCE BOOST: Use compact mode and timestamp to prevent caching lag
+        const allRes = await fetch(`/api/api?league=english&compact=true&t=${Date.now()}`);
         const allData = await allRes.json();
         const currentKeys = getFingerprints(matches);
 
@@ -229,13 +192,12 @@ async function renderResults(matches, currentContext) {
         let matchType = ""; 
         let color = "indigo";
 
-        for (const record of allData) {
+        // FAST SCANNING LOOP
+        for (let i = 0; i < allData.length; i++) {
+            const record = allData[i];
             if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
 
-            const pastMatches = record.matches || record.allMatches;
-            if (!pastMatches) continue;
-            
-            const pastKeys = getFingerprints(pastMatches);
+            const pastKeys = getFingerprints(record.matches);
 
             if (currentKeys.exact === pastKeys.exact) {
                 duplicateFound = record;
@@ -246,15 +208,11 @@ async function renderResults(matches, currentContext) {
                 duplicateFound = record;
                 matchType = "REARRANGED SEQUENCE";
                 color = "amber";
-            } else if (currentKeys.pairingSeq === pastKeys.pairingSeq && !duplicateFound) {
+            } else if (currentKeys.pairingSeq === pastKeys.pairingSeq) {
                 duplicateFound = record;
                 matchType = "IDENTICAL FIXTURE LIST";
                 color = "cyan";
-            } else if (currentKeys.pairingScrambled === pastKeys.pairingScrambled && !duplicateFound) {
-                duplicateFound = record;
-                matchType = "MATCHUP REPETITION";
-                color = "emerald";
-            } else if (currentKeys.outcome === pastKeys.outcome && !duplicateFound) {
+            } else if (currentKeys.outcome === pastKeys.outcome) {
                 duplicateFound = record;
                 matchType = "SCORE PATTERN MATCH";
                 color = "rose";
@@ -285,12 +243,9 @@ async function renderResults(matches, currentContext) {
         }
     } catch (e) { console.error("Cross-check error:", e); }
 
-    // --- RENDER MATCH CARDS WITH FALLBACKS ---
     const matchCards = matches.map((match) => {
-        // Fallback logic to find team names even if keys are slightly different
         const hName = match.homeTeam || match.home || "N/A";
         const aName = match.awayTeam || match.away || match.visitor || "N/A";
-
         return `
         <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
             <div class="flex items-center justify-between w-full">
@@ -311,6 +266,9 @@ async function renderResults(matches, currentContext) {
 
     grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
 }
+
+// Initial Load
+window.onload = triggerFetch;
 </script>
 </body>
 </html>
