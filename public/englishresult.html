@@ -105,11 +105,10 @@
     </main>
 
 <script>
- let fetchController = null;
+let fetchController = null;
 let foundDuplicates = [];
 let currentDuplicateIndex = 0;
 
-// --- STEP NAVIGATION HELPER ---
 function stepValue(id, direction) {
     const el = document.getElementById(id);
     const currentIndex = el.selectedIndex;
@@ -120,7 +119,6 @@ function stepValue(id, direction) {
     }
 }
 
-// --- OPTIMIZED NAVIGATION ---
 function navigateToOriginal(season, trn, week) {
     document.getElementById('seasonSelect').value = season;
     document.getElementById('trnSelect').value = trn;
@@ -128,27 +126,21 @@ function navigateToOriginal(season, trn, week) {
     triggerFetch();
 }
 
-// --- ADVANCED FINGERPRINTING ---
 function getFingerprints(matches) {
-    if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
-    
+    if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "" };
     const getH = (m) => (m.homeTeam || m.home || "").trim().toLowerCase();
     const getA = (m) => (m.awayTeam || m.away || m.visitor || "").trim().toLowerCase();
-
     const exact = matches.map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).join('|');
     const scrambled = [...matches].map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).sort().join('|');
     const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
     const pairingSeq = matches.map(m => `${getH(m)}v${getA(m)}`).join('|');
-    
     return { exact, scrambled, outcome, pairingSeq };
 }
 
-// --- TRIGGER FETCH ---
 async function triggerFetch() {
     const season = document.getElementById('seasonSelect').value;
     const trn = document.getElementById('trnSelect').value;
     const week = document.getElementById('weekSelect').value;
-
     const loader = document.getElementById('loadingState');
     const grid = document.getElementById('resultsGrid');
     
@@ -156,13 +148,15 @@ async function triggerFetch() {
     grid.classList.add('hidden');
 
     try {
+        // Fetch specific record
         const res = await fetch(`/api/api?league=english&season=${season}&trn=${trn}&week=${week}`);
         const data = await res.json();
         
-        // Match the specific record from the array returned by the serverless function
+        // Find exact record
         const record = data.find(r => r.season == season && r.trn == trn && r.week == week);
         
-        await renderResults(record ? record.matches : [], { season, trn, week });
+        // Pass the whole record to renderResults to use the timestamp
+        await renderResults(record || null, { season, trn, week });
         
         loader.classList.add('hidden');
         grid.classList.remove('hidden');
@@ -171,98 +165,44 @@ async function triggerFetch() {
     }
 }
 
-// --- NEW: UPDATE ALERT UI ---
-function updateAlertUI() {
-    const container = document.getElementById('alertContainer');
-    if (!container || foundDuplicates.length === 0) return;
-
-    const data = foundDuplicates[currentDuplicateIndex];
-    const total = foundDuplicates.length;
-
-    container.innerHTML = `
-        <div class="bg-${data.color}-600 border-l-4 border-${data.color}-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short relative overflow-hidden">
-            <div class="absolute top-2 right-4 text-white/10 font-black italic text-4xl select-none">#${currentDuplicateIndex + 1}</div>
-            <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                <div class="flex items-center gap-4">
-                    <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="text-white text-lg font-black uppercase tracking-tighter">${data.matchType}</h3>
-                        <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">
-                            Found in S${data.season} TRN ${data.trn} Week ${data.week} — Match ${currentDuplicateIndex + 1} of ${total}
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-2">
-                    <button onclick="changeDuplicate(-1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                    </button>
-                    <button onclick="navigateToOriginal('${data.season}', '${data.trn}', '${data.week}')" 
-                        class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl border border-white/10">
-                        Jump to Record
-                    </button>
-                    <button onclick="changeDuplicate(1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                    </button>
-                </div>
-            </div>
-        </div>`;
-}
-
-function changeDuplicate(dir) {
-    currentDuplicateIndex = (currentDuplicateIndex + dir + foundDuplicates.length) % foundDuplicates.length;
-    updateAlertUI();
-}
-
-// --- RENDER & SCAN (UPDATED) ---
-async function renderResults(matches, currentContext) {
+async function renderResults(record, currentContext) {
     const grid = document.getElementById('resultsGrid');
-    if (!matches || matches.length === 0) {
+    
+    if (!record || !record.matches || record.matches.length === 0) {
         grid.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
             <p class="text-slate-600 font-black text-[10px] uppercase tracking-widest">No Database Entry Found</p>
         </div>`;
         return;
     }
 
+    const matches = record.matches;
     foundDuplicates = [];
     currentDuplicateIndex = 0;
 
+    // --- CROSS CHECK SCAN ---
     try {
         const allRes = await fetch(`/api/api?league=english&compact=true&t=${Date.now()}`);
         const allData = await allRes.json();
         const currentKeys = getFingerprints(matches);
 
-        for (const record of allData) {
-            // Don't compare with itself
-            if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
+        for (const pastRecord of allData) {
+            if (pastRecord.season == currentContext.season && pastRecord.trn == currentContext.trn && pastRecord.week == currentContext.week) continue;
 
-            const pastKeys = getFingerprints(record.matches);
+            const pastKeys = getFingerprints(pastRecord.matches);
             let matchType = "";
             let color = "indigo";
 
-            if (currentKeys.exact === pastKeys.exact) {
-                matchType = "EXACT SEQUENCE MATCH";
-                color = "indigo";
-            } else if (currentKeys.scrambled === pastKeys.scrambled) {
-                matchType = "REARRANGED SEQUENCE";
-                color = "amber";
-            } else if (currentKeys.pairingSeq === pastKeys.pairingSeq) {
-                matchType = "IDENTICAL FIXTURE LIST";
-                color = "cyan";
-            } else if (currentKeys.outcome === pastKeys.outcome) {
-                matchType = "SCORE PATTERN MATCH";
-                color = "rose";
-            }
+            if (currentKeys.exact === pastKeys.exact) { matchType = "EXACT MATCH"; color = "indigo"; }
+            else if (currentKeys.scrambled === pastKeys.scrambled) { matchType = "REARRANGED"; color = "amber"; }
+            else if (currentKeys.pairingSeq === pastKeys.pairingSeq) { matchType = "FIXTURE MATCH"; color = "cyan"; }
+            else if (currentKeys.outcome === pastKeys.outcome) { matchType = "SCORE PATTERN"; color = "rose"; }
 
-            if (matchType) {
-                foundDuplicates.push({ ...record, matchType, color });
-            }
+            if (matchType) foundDuplicates.push({ ...pastRecord, matchType, color });
         }
-    } catch (e) { console.error("Cross-check error:", e); }
+    } catch (e) { console.error("Scan error:", e); }
+
+    // --- TIME STAMP DISPLAY ---
+    const displayTime = record.deviceTime || "Legacy Record (No Timestamp)";
 
     const matchCards = matches.map((match) => {
         const hName = (match.homeTeam || match.home || "N/A").toUpperCase();
@@ -281,11 +221,62 @@ async function renderResults(matches, currentContext) {
         </div>`;
     }).join('');
 
-    grid.innerHTML = `<div id="alertContainer"></div><div class="grid gap-3">${matchCards}</div>`;
+    // Prepend the Timestamp Header and the Alert Container
+    grid.innerHTML = `
+        <div id="alertContainer"></div>
+        <div class="flex justify-between items-center px-2 mb-2">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Live Database Entry</span>
+            </div>
+            <div class="text-right">
+                <span class="text-[8px] text-slate-500 uppercase font-bold block">Synced On (Device Time)</span>
+                <span class="text-[10px] text-indigo-400 font-black uppercase">${displayTime}</span>
+            </div>
+        </div>
+        <div class="grid gap-3">${matchCards}</div>
+    `;
     
-    if (foundDuplicates.length > 0) {
-        updateAlertUI();
-    }
+    if (foundDuplicates.length > 0) updateAlertUI();
+}
+
+function updateAlertUI() {
+    const container = document.getElementById('alertContainer');
+    if (!container || foundDuplicates.length === 0) return;
+    const data = foundDuplicates[currentDuplicateIndex];
+    container.innerHTML = `
+        <div class="bg-${data.color}-600 border-l-4 border-${data.color}-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short relative overflow-hidden">
+            <div class="absolute top-2 right-4 text-white/10 font-black italic text-4xl select-none">#${currentDuplicateIndex + 1}</div>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-lg font-black uppercase tracking-tighter">${data.matchType}</h3>
+                        <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">
+                            S${data.season} TRN ${data.trn} W${data.week} — Entry ${currentDuplicateIndex + 1}/${foundDuplicates.length}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="changeDuplicate(-1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button onclick="navigateToOriginal('${data.season}', '${data.trn}', '${data.week}')" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl border border-white/10">Jump to Record</button>
+                    <button onclick="changeDuplicate(1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+}
+
+function changeDuplicate(dir) {
+    currentDuplicateIndex = (currentDuplicateIndex + dir + foundDuplicates.length) % foundDuplicates.length;
+    updateAlertUI();
 }
 
 window.onload = triggerFetch;
