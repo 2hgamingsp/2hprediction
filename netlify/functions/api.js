@@ -39,7 +39,7 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // SCENARIO 1: Historical Matchup Check (Team vs Team)
+        // SCENARIO 1: Historical Matchup Check (Specific Game History)
         if (homeTeam && awayTeam) {
             const historicalRecords = await collection.find({
                 "matches": {
@@ -50,9 +50,11 @@ app.get("/api/api", async (req, res) => {
                 }
             }).sort({ lastUpdated: -1 }).toArray();
 
-            // Map results to extract the specific match data
             const response = historicalRecords.map(doc => {
-                const match = doc.matches.find(m => m.homeTeam === homeTeam.toUpperCase() && m.awayTeam === awayTeam.toUpperCase());
+                const match = doc.matches.find(m => 
+                    m.homeTeam === homeTeam.toUpperCase() && 
+                    m.awayTeam === awayTeam.toUpperCase()
+                );
                 return {
                     homeTeam: match.homeTeam,
                     awayTeam: match.awayTeam,
@@ -67,15 +69,14 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Specific Filter or Full League Fetch
+        // SCENARIO 2: Dynamic Query (Season, TRN, Week, or Full League for Batch Check)
         const query = {};
         if (season) query.season = season;
         if (trn) query.trn = trn;
         if (week) query.week = week;
 
-        // If no specific filters (season/trn/week) are provided, 
-        // this will return all records for the duplicate batch check.
-        const results = await collection.find(query).sort({ lastUpdated: -1 }).toArray();
+        // Fetching records. If no filters, returns all (used for frontend duplicate batch logic)
+        const results = await collection.find(query).sort({ season: -1, trn: -1 }).toArray();
         res.status(200).json(results);
         
     } catch (error) {
@@ -96,19 +97,28 @@ app.post("/api/api", async (req, res) => {
         const db = client.db();
         const collection = db.collection(getCollectionName(batch.league));
 
-        // Consistent ID format for easy lookup/overwriting
-        const customId = `${batch.league}-${batch.season}-TRN${batch.trn}-W${batch.week}`;
+        // Format team names to uppercase for strict fingerprinting
+        const sanitizedMatches = batch.allMatches.map(m => ({
+            ...m,
+            homeTeam: m.homeTeam.toUpperCase().trim(),
+            awayTeam: m.awayTeam.toUpperCase().trim(),
+            homeScore: parseInt(m.homeScore),
+            awayScore: parseInt(m.awayScore)
+        }));
+
+        // ID includes league and season to prevent cross-over overwrites
+        const customId = `${batch.league.toLowerCase()}-${batch.season}-TRN${batch.trn}-W${batch.week}`;
         
         await collection.updateOne(
             { _id: customId },
             { 
                 $set: {
                     batchId: customId,
-                    league: batch.league,
+                    league: batch.league.toLowerCase(),
                     season: batch.season,
                     trn: batch.trn,
                     week: batch.week,
-                    matches: batch.allMatches,
+                    matches: sanitizedMatches,
                     lastUpdated: new Date()
                 } 
             },
@@ -117,6 +127,7 @@ app.post("/api/api", async (req, res) => {
 
         res.status(200).json({ success: true, id: customId });
     } catch (error) {
+        console.error("Post Error:", error);
         res.status(500).json({ error: error.message });
     }
 });

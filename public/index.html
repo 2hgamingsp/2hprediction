@@ -5,53 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soccer Database | Central Command</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        .bg-grid {
+            background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 min-h-screen flex items-center justify-center p-6 text-slate-100 font-sans">
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-6 text-slate-100 font-sans bg-grid">
 
-    <div class="max-w-4xl w-full">
-        <div class="text-center mb-12">
-            <div class="inline-block bg-indigo-500/10 border border-indigo-500/20 px-4 py-1 rounded-full text-indigo-400 text-xs font-bold uppercase tracking-[0.3em] mb-4">
-                Global Sports Management
+    <div class="max-w-5xl w-full relative">
+        <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <div class="text-center mb-16 relative">
+            <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-6">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                Global Sports Management System
             </div>
-            <h1 class="text-5xl md:text-6xl font-black uppercase tracking-tighter mb-4">
-                Welcome <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-600">Soccer</span>
+            <h1 class="text-6xl md:text-7xl font-black uppercase tracking-tighter mb-4 italic">
+                Central <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-500 to-emerald-400">Command</span>
             </h1>
-            <p class="text-slate-400 font-medium">Select a league terminal to begin data entry and synchronization.</p>
+            <p class="text-slate-400 font-medium max-w-xl mx-auto text-sm md:text-base">
+                Professional soccer match data orchestration. Select a league terminal to manage historical records and batch synchronizations.
+            </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             
-            <a href="englishleague.html" class="group relative bg-slate-800 border border-slate-700 p-8 rounded-3xl transition-all hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-2">
+            <a href="englishleague.html" class="group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 rounded-[2.5rem] transition-all hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-2 overflow-hidden">
+                <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-20 h-20 text-indigo-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+                </div>
                 <div class="mb-4 text-indigo-500 font-black text-xl uppercase tracking-widest">ENG</div>
-                <h2 class="text-2xl font-bold mb-2 group-hover:text-indigo-400 transition">English League</h2>
-                <p class="text-slate-500 text-sm mb-6">Premier Division entry terminal</p>
-                <div class="flex items-center text-xs font-bold text-indigo-400 uppercase tracking-widest">
-                    Open Terminal 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <h2 class="text-2xl font-black mb-2 group-hover:text-indigo-400 transition">English League</h2>
+                <p class="text-slate-500 text-xs font-bold leading-relaxed mb-8">Premier Division high-frequency entry terminal with duplicate detection.</p>
+                <div class="flex items-center text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">
+                    Initialize System
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </div>
             </a>
 
-            <a href="laligaleague.html" class="group relative bg-slate-800 border border-slate-700 p-8 rounded-3xl transition-all hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-2">
+            <a href="laligaleague.html" class="group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 rounded-[2.5rem] transition-all hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-500/10 hover:-translate-y-2 overflow-hidden">
+                <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-20 h-20 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+                </div>
                 <div class="mb-4 text-amber-500 font-black text-xl uppercase tracking-widest">ESP</div>
-                <h2 class="text-2xl font-bold mb-2 group-hover:text-amber-400 transition">LaLiga League</h2>
-                <p class="text-slate-500 text-sm mb-6">Spanish Division entry terminal</p>
-                <div class="flex items-center text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    Open Terminal 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <h2 class="text-2xl font-black mb-2 group-hover:text-amber-400 transition">LaLiga League</h2>
+                <p class="text-slate-500 text-xs font-bold leading-relaxed mb-8">Spanish Division entry terminal. Optimized for historical accuracy.</p>
+                <div class="flex items-center text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">
+                    Initialize System
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </div>
             </a>
 
-            <a href="italianleague.html" class="group relative bg-slate-800 border border-slate-700 p-8 rounded-3xl transition-all hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-2">
+            <a href="italianleague.html" class="group relative bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 rounded-[2.5rem] transition-all hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-2 overflow-hidden">
+                <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/></svg>
+                </div>
                 <div class="mb-4 text-emerald-500 font-black text-xl uppercase tracking-widest">ITA</div>
-                <h2 class="text-2xl font-bold mb-2 group-hover:text-emerald-400 transition">Italy League</h2>
-                <p class="text-slate-500 text-sm mb-6">Serie A Division entry terminal</p>
-                <div class="flex items-center text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                    Open Terminal 
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <h2 class="text-2xl font-black mb-2 group-hover:text-emerald-400 transition">Italy League</h2>
+                <p class="text-slate-500 text-xs font-bold leading-relaxed mb-8">Serie A Division specialized entry terminal for Italian match sets.</p>
+                <div class="flex items-center text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">
+                    Initialize System
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </div>
@@ -59,8 +84,18 @@
 
         </div>
 
-        <footer class="mt-20 text-center border-t border-slate-800 pt-8">
-            <p class="text-slate-600 text-[10px] font-bold uppercase tracking-[0.5em]">System Status: Operational</p>
+        <footer class="mt-24 text-center border-t border-slate-800/50 pt-10">
+            <div class="flex justify-center gap-8 mb-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
+                <div class="flex flex-col items-center">
+                    <span class="text-[8px] font-black uppercase text-slate-500 mb-1">Database</span>
+                    <span class="text-[10px] font-bold text-emerald-500">CONNECTED</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[8px] font-black uppercase text-slate-500 mb-1">API Sync</span>
+                    <span class="text-[10px] font-bold text-emerald-500">ACTIVE</span>
+                </div>
+            </div>
+            <p class="text-slate-600 text-[9px] font-black uppercase tracking-[0.6em] animate-pulse">Proprietary Match Management Interface v4.0.2</p>
         </footer>
     </div>
 
