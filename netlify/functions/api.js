@@ -87,11 +87,13 @@ app.get("/api/api", async (req, res) => {
         if (trn) query.trn = trn;
         if (week) query.week = week;
 
-        // Limiting to last 1000 records if no specific query is provided 
-        // to prevent overloading the frontend during pattern scans
+        // If searching for a specific week, we don't limit. 
+        // If scanning the whole league for patterns, we limit to avoid crashing the browser.
+        const limitValue = (season || trn || week) ? 0 : 2000;
+
         const results = await collection.find(query)
             .sort({ season: -1, trn: -1, week: -1 })
-            .limit(query.trn ? 0 : 1000) 
+            .limit(limitValue) 
             .toArray();
 
         res.status(200).json(results);
@@ -118,21 +120,22 @@ app.post("/api/api", async (req, res) => {
 
         // Sanitize match data: Trim and Uppercase for accurate fingerprinting
         const sanitizedMatches = matchData.map(m => ({
-            homeTeam: m.homeTeam.toUpperCase().trim(),
-            awayTeam: m.awayTeam.toUpperCase().trim(),
-            homeScore: parseInt(m.homeScore),
-            awayScore: parseInt(m.awayScore)
+            homeTeam: m.homeTeam.toString().toUpperCase().trim(),
+            awayTeam: m.awayTeam.toString().toUpperCase().trim(),
+            homeScore: parseInt(m.homeScore) || 0,
+            awayScore: parseInt(m.awayScore) || 0
         }));
 
         // Unique ID ensures we don't double-save the same Week/TRN
-        const customId = `${batch.league.toLowerCase()}-${batch.season}-T${batch.trn}-W${batch.week}`;
+        // Format: league-season-trn-week (e.g., english-2025-101-5)
+        const customId = `${batch.league.toLowerCase()}-${batch.season}-${batch.trn}-${batch.week}`;
         
         const updateDoc = {
-            batchId: customId,
+            _id: customId,
             league: batch.league.toLowerCase(),
-            season: batch.season,
-            trn: batch.trn,
-            week: batch.week,
+            season: batch.season.toString(),
+            trn: batch.trn.toString(),
+            week: batch.week.toString(),
             matches: sanitizedMatches,
             lastUpdated: new Date()
         };

@@ -228,12 +228,12 @@
 // --- STATE MANAGEMENT ---
 let pendingBatchData = null;
 
-// HELPER: Improved Fingerprinting
+// HELPER: Fingerprinting Toolkit
 function getFingerprints(matches) {
     // 1. Exact Fingerprint (Order Matters)
     const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
 
-    // 2. Scrambled Fingerprint (Order Doesn't Matter - Sorts matches alphabetically)
+    // 2. Scrambled Fingerprint (Order Doesn't Matter)
     const scrambled = [...matches]
         .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
         .sort()
@@ -242,9 +242,19 @@ function getFingerprints(matches) {
     // 3. Outcome Pattern (Scores Only - Order Matters)
     const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
 
-    return { exact, scrambled, outcome };
+    // 4. Pairing Pattern (Teams Only - Order Matters)
+    const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 5. Pairing Pattern (Teams Only - Order Doesn't Matter)
+    const pairingScrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
 }
 
+// UI Helpers
 function stepValue(id, direction) {
     const el = document.getElementById(id);
     const currentIndex = el.selectedIndex;
@@ -280,25 +290,40 @@ function showDuplicateModal(type, pastRecord, batchData) {
     let message = "";
     let colorClass = "indigo";
 
-    if (type === 'EXACT') {
-        title = "EXACT SEQUENCE MATCH";
-        message = `This exact set of 10 results is identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week})</span>.`;
-    } else if (type === 'SCRAMBLED') {
-        title = "REARRANGED SEQUENCE";
-        colorClass = "amber";
-        message = `All 10 matchups and scores exist in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but the arrangement (order) is different.`;
-    } else if (type === 'OUTCOME') {
-        title = "SCORE PATTERN MATCH";
-        colorClass = "rose";
-        message = `The sequence of 10 scores (Results) is identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but the teams are different.`;
+    switch(type) {
+        case 'EXACT':
+            title = "EXACT SEQUENCE MATCH";
+            message = `Full match! Teams and Scores are identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week})</span>.`;
+            break;
+        case 'SCRAMBLED':
+            title = "REARRANGED SEQUENCE";
+            colorClass = "amber";
+            message = `All 10 matchups and scores exist in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but in a different order.`;
+            break;
+        case 'OUTCOME':
+            title = "SCORE PATTERN MATCH";
+            colorClass = "rose";
+            message = `The 10 scores (e.g., 2-1, 0-0...) match <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span> exactly, but teams differ.`;
+            break;
+        case 'PAIRING_SEQ':
+            title = "IDENTICAL FIXTURE LIST";
+            colorClass = "cyan";
+            message = `The 10 pairings (Home vs Away) are in the same order as <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but with different scores.`;
+            break;
+        case 'PAIRING_SCRAMBLED':
+            title = "MATCHUP REPETITION";
+            colorClass = "emerald";
+            message = `The same 10 matchups occurred in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span> in a different order.`;
+            break;
     }
 
+    // Dynamic Tailwind class injection (Note: for production, ensure these colors are in your safelist)
     content.innerHTML = `
         <div class="bg-${colorClass}-500/20 border border-${colorClass}-500/50 p-4 rounded-xl mb-4">
             <p class="text-${colorClass}-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ ${title}</p>
             <p class="text-white text-xs leading-relaxed">${message}</p>
         </div>
-        <p class="text-slate-400 text-[10px] uppercase font-bold text-center italic">Potential repetition detected. Proceed?</p>
+        <p class="text-slate-400 text-[10px] uppercase font-bold text-center italic">Historical pattern detected. Record anyway?</p>
     `;
     
     modal.classList.remove('hidden');
@@ -341,21 +366,26 @@ async function checkHistory(currentMatches) {
         const allData = await response.json();
         const currentKeys = getFingerprints(currentMatches);
 
-        // Check against every record in DB
         for (const record of allData) {
             const pastMatches = record.matches || record.allMatches;
             if (!pastMatches || pastMatches.length !== 10) continue;
 
             const pastKeys = getFingerprints(pastMatches);
 
-            // Level 1: Exact Match
+            // Level 1: Exact Match (Teams + Scores + Order)
             if (currentKeys.exact === pastKeys.exact) return { type: 'EXACT', record };
 
-            // Level 2: Scrambled Match (Same Matchups/Scores, different order)
+            // Level 2: Scrambled Match (Teams + Scores, different order)
             if (currentKeys.scrambled === pastKeys.scrambled) return { type: 'SCRAMBLED', record };
 
-            // Level 3: Outcome Match (Same sequence of scores, different teams)
+            // Level 3: Outcome Match (Scores only, same order)
             if (currentKeys.outcome === pastKeys.outcome) return { type: 'OUTCOME', record };
+
+            // Level 4: Pairing Sequential (Same matchups, same order, different scores)
+            if (currentKeys.pairingSeq === pastKeys.pairingSeq) return { type: 'PAIRING_SEQ', record };
+
+            // Level 5: Pairing Scrambled (Same matchups, any order, different scores)
+            if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) return { type: 'PAIRING_SCRAMBLED', record };
         }
         return null; 
     } catch (e) { return null; }
@@ -395,10 +425,12 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
 
     const batchData = { league, season, trn, week, matches: matchesArray };
     const syncBtn = e.target.querySelector('button[type="submit"]');
-    syncBtn.innerText = "SCANNING DATABASE...";
+    syncBtn.innerText = "DATABASE SCANNING...";
+    syncBtn.disabled = true;
     
     const historyResult = await checkHistory(matchesArray);
 
+    syncBtn.disabled = false;
     if (historyResult) {
         syncBtn.innerText = "Sync TRN Data";
         showDuplicateModal(historyResult.type, historyResult.record, batchData);
