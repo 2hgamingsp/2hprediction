@@ -98,7 +98,7 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- POST ROUTE (SANITIZED) ---
+// --- POST ROUTE (UPDATED TO INCLUDE DEVICE TIME) ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
@@ -128,7 +128,10 @@ app.post("/api/api", async (req, res) => {
             trn: batch.trn.toString(),
             week: batch.week.toString(),
             matches: sanitizedMatches,
-            lastUpdated: new Date()
+            // NEW FIELDS FROM DEVICE:
+            deviceTime: batch.syncedAt,   // Readable string from user's device
+            deviceTimestamp: batch.timestamp, // Raw number for sorting
+            serverTime: new Date()        // Server's own backup timestamp
         };
 
         const result = await collection.updateOne(

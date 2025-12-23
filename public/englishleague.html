@@ -487,7 +487,15 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
     }
 
     // Database Scanning
-    const batchData = { league, season, trn, week, matches: matchesArray };
+    const batchData = { 
+    league, 
+    season, 
+    trn, 
+    week, 
+    matches: matchesArray,
+    syncedAt: new Date().toLocaleString(), 
+    timestamp: Date.now() 
+};
     const syncBtn = e.target.querySelector('button[type="submit"]');
     syncBtn.innerText = "SCANNING DATABASE...";
     syncBtn.disabled = true;
