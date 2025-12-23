@@ -111,10 +111,9 @@
     </main>
 
 <script>
-// --- Replace your existing <script> section with this updated logic ---
-
 let allFetchedData = [];
-let currentSelectionMatches = []; // Stores indices or IDs of duplicates for the current selection
+let foundDuplicates = []; // Global list of duplicates for navigation
+let currentDuplicateIndex = 0;
 
 function stepValue(id, direction) {
     const el = document.getElementById(id);
@@ -158,32 +157,39 @@ async function triggerFetch(shouldScroll = false) {
             });
         }
 
-        // 1. Identify the currently selected record
         const currentRecord = allFetchedData.find(r => r.season == selSeason && r.trn == selTrn && r.week == selWeek);
-        currentSelectionMatches = [];
+        foundDuplicates = [];
+        currentDuplicateIndex = 0;
 
-        // 2. Clear old container
-        container.innerHTML = ''; 
-
-        // 3. Generate blocks with inline duplicate check
+        // 1. First pass: Find all duplicates globally to enable navigation
         if (currentRecord) {
             const currentKeys = getFingerprints(currentRecord.matches);
-            
-            allFetchedData.forEach(record => {
-                const isSelected = record.season == selSeason && record.trn == selTrn && record.week == selWeek;
-                let duplicateInfo = null;
+            allFetchedData.forEach(other => {
+                if (other.season == currentRecord.season && other.trn == currentRecord.trn && other.week == currentRecord.week) return;
+                
+                const pastKeys = getFingerprints(other.matches);
+                let matchType = "";
+                let color = "indigo";
 
-                if (!isSelected) {
-                    const otherKeys = getFingerprints(record.matches);
-                    if (currentKeys.exact === otherKeys.exact) duplicateInfo = { type: "EXACT SEQUENCE MATCH", color: "indigo" };
-                    else if (currentKeys.scrambled === otherKeys.scrambled) duplicateInfo = { type: "REARRANGED SEQUENCE", color: "amber" };
-                    else if (currentKeys.pairingSeq === otherKeys.pairingSeq) duplicateInfo = { type: "IDENTICAL FIXTURE LIST", color: "cyan" };
-                    else if (currentKeys.outcome === otherKeys.outcome) duplicateInfo = { type: "SCORE PATTERN MATCH", color: "rose" };
-                }
+                if (currentKeys.exact === pastKeys.exact) { matchType = "EXACT SEQUENCE MATCH"; color = "indigo"; }
+                else if (currentKeys.scrambled === pastKeys.scrambled) { matchType = "REARRANGED SEQUENCE"; color = "amber"; }
+                else if (currentKeys.pairingSeq === pastKeys.pairingSeq) { matchType = "IDENTICAL FIXTURE LIST"; color = "cyan"; }
+                else if (currentKeys.outcome === pastKeys.outcome) { matchType = "SCORE PATTERN MATCH"; color = "rose"; }
 
-                container.insertAdjacentHTML('beforeend', generateWeekBlock(record, isSelected, duplicateInfo));
+                if (matchType) foundDuplicates.push({ ...other, matchType, color });
             });
         }
+
+        // 2. Second pass: Generate the UI
+        container.innerHTML = ''; 
+        allFetchedData.forEach(record => {
+            const isSelected = record.season == selSeason && record.trn == selTrn && record.week == selWeek;
+            
+            // Check if THIS specific record is a duplicate of the selection
+            const duplicateEntry = foundDuplicates.find(d => d.season == record.season && d.trn == record.trn && d.week == record.week);
+            
+            container.insertAdjacentHTML('beforeend', generateWeekBlock(record, isSelected, duplicateEntry));
+        });
 
         loader.classList.add('hidden');
         if (shouldScroll) scrollToRecord(selSeason, selTrn, selWeek);
@@ -194,20 +200,26 @@ async function triggerFetch(shouldScroll = false) {
     }
 }
 
+function changeDuplicate(dir) {
+    if (foundDuplicates.length === 0) return;
+    currentDuplicateIndex = (currentDuplicateIndex + dir + foundDuplicates.length) % foundDuplicates.length;
+    const target = foundDuplicates[currentDuplicateIndex];
+    scrollToRecord(target.season, target.trn, target.week);
+}
+
 function generateWeekBlock(record, isHighlighted, duplicateInfo) {
-    // Styling logic
-    let borderClass = 'border-slate-800';
-    let bgClass = 'bg-slate-800/30';
+    let borderClass = isHighlighted ? 'border-indigo-500 shadow-[0_0_40px_rgba(79,70,229,0.4)]' : 'border-slate-800';
+    let bgClass = isHighlighted ? 'bg-slate-800/90' : 'bg-slate-800/30';
     
-    if (isHighlighted) {
-        borderClass = 'border-indigo-500 shadow-[0_0_40px_rgba(79,70,229,0.4)]';
-        bgClass = 'bg-slate-800/90';
-    } else if (duplicateInfo) {
-        borderClass = `border-${duplicateInfo.color}-500/50 shadow-[0_0_20px_rgba(0,0,0,0.3)]`;
-        bgClass = `bg-${duplicateInfo.color}-950/20`;
+    if (duplicateInfo) {
+        borderClass = `border-${duplicateInfo.color}-500 shadow-[0_0_20px_rgba(0,0,0,0.2)]`;
     }
-    
+
     const displayId = record._id ? record._id.slice(-8).toUpperCase() : 'SYNCED';
+    
+    // Formatting date/time from the record
+    const recordDate = record.deviceTime ? new Date(record.deviceTime).toLocaleDateString() : 'N/A';
+    const recordTime = record.deviceTime ? new Date(record.deviceTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
 
     const matchCards = record.matches.map(m => `
         <div class="bg-slate-950/40 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between">
@@ -221,34 +233,58 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
         </div>
     `).join('');
 
-    // Inline Duplicate Message Template
+    // RICH DUPLICATE BANNER (Includes Nav, S/T/W, and DateTime)
     const duplicateBanner = duplicateInfo ? `
-        <div class="mb-4 bg-${duplicateInfo.color}-600/90 backdrop-blur-sm p-3 rounded-xl flex items-center justify-between border border-${duplicateInfo.color}-400/30 animate-pulse">
-            <div class="flex items-center gap-3">
-                <div class="bg-white/20 p-1.5 rounded-lg text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <span class="text-[10px] font-black text-white uppercase tracking-tighter">${duplicateInfo.type}</span>
+        <div class="mb-5 bg-${duplicateInfo.color}-600 border-l-4 border-${duplicateInfo.color}-400 p-4 rounded-2xl shadow-xl relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
             </div>
-            <span class="text-[8px] font-bold text-white/70 uppercase">Matches Selected Week</span>
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-md">
+                         <span class="text-white font-black text-xs">MATCH</span>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-[11px] font-black uppercase tracking-tighter">${duplicateInfo.matchType}</h3>
+                        <p class="text-white/80 text-[8px] font-bold uppercase tracking-widest">
+                            Found in: S${record.season} • TRN ${record.trn} • W${record.week} 
+                        </p>
+                        <p class="text-white/60 text-[7px] font-bold uppercase mt-0.5 italic">
+                            Recorded: ${recordDate} ${recordTime}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2 bg-black/20 p-1 rounded-xl border border-white/10">
+                    <button onclick="changeDuplicate(-1)" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div class="px-2 border-x border-white/10 text-[9px] font-black text-white tabular-nums">
+                        ${foundDuplicates.indexOf(duplicateInfo) + 1} / ${foundDuplicates.length}
+                    </div>
+                    <button onclick="changeDuplicate(1)" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+            </div>
         </div>
     ` : '';
 
     return `
         <div id="week-${record.season}-${record.trn}-${record.week}" class="p-6 rounded-3xl border-2 ${borderClass} ${bgClass} transition-all duration-500 relative">
             ${duplicateBanner}
-            ${isHighlighted ? '<div class="absolute -top-3 left-6 bg-indigo-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg">Current Selection</div>' : ''}
+            ${isHighlighted ? '<div class="absolute -top-3 left-6 bg-indigo-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-xl z-20 animate-pulse">Current Selection</div>' : ''}
             
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Season ${record.season}</span>
-                    <h2 class="text-lg font-black text-indigo-400 uppercase tracking-tighter">TRN ${record.trn} • Week ${record.week}</h2>
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Timeline Entry</span>
+                    <h2 class="text-lg font-black text-indigo-400 uppercase tracking-tighter leading-none">S${record.season} • TRN ${record.trn} • W${record.week}</h2>
                 </div>
                 <div class="text-right">
-                    <span class="text-[7px] text-slate-500 block uppercase font-black">Ref ID</span>
-                    <span class="text-[9px] text-slate-400 font-mono">${displayId}</span>
+                    <span class="text-[7px] text-slate-500 block uppercase font-black">Sync Hash</span>
+                    <span class="text-[9px] text-slate-400 font-mono font-bold">${displayId}</span>
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
