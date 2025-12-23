@@ -56,6 +56,21 @@
             </div>
         </div>
     </div>
+    
+<div id="errorModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-rose-500/50 p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+        <div class="w-12 h-12 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </div>
+        <h3 class="text-lg font-black text-white uppercase mb-2">Invalid Data</h3>
+        <p id="errorMessage" class="text-slate-400 text-xs leading-relaxed mb-6"></p>
+        <button onclick="closeErrorModal()" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition">
+            Go Back & Fix
+        </button>
+    </div>
+</div>
 
     <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
@@ -394,6 +409,19 @@ async function checkHistory(currentMatches) {
     } catch (e) { return null; }
 }
 
+function showErrorModal(message) {
+    const modal = document.getElementById('errorModal');
+    document.getElementById('errorMessage').innerText = message;
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('errorModal');
+    modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
 document.getElementById('matchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const season = document.getElementById('seasonSelect').value;
@@ -403,9 +431,8 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
     const rows = document.querySelectorAll('tbody tr');
     
     const matchesArray = [];
-    const usedTeams = new Set(); // To track unique teams
+    const usedTeams = new Set();
     let isFormValid = true;
-    let duplicateTeam = null;
 
     for (let [index, row] of rows.entries()) {
         const inputs = row.querySelectorAll('input');
@@ -414,26 +441,26 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
 
         // 1. Basic Empty Check
         if (!home || !away) {
-            isFormValid = false;
-            break;
-        }
-
-        // 2. Same-Row Check (e.g., BOU vs BOU)
-        if (home === away) {
-            alert(`Row ${index + 1}: A team cannot play against itself (${home}).`);
+            showErrorModal("⚠️ Empty fields detected. Please fill all 10 match slots.");
             return;
         }
 
-        // 3. Global Duplicate Check (The BOU issue)
+        // 2. Same-Row Check
+        if (home === away) {
+            showErrorModal(`Match ${index + 1} Error: A team cannot play against itself (${home}).`);
+            return;
+        }
+
+        // 3. Duplicate Team Check
         if (usedTeams.has(home)) {
-            duplicateTeam = home;
-            break;
+            showErrorModal(`❌ INVALID DATA: Team "${home}" appears more than once. Each team can only play one match per week.`);
+            return;
         }
         usedTeams.add(home);
 
         if (usedTeams.has(away)) {
-            duplicateTeam = away;
-            break;
+            showErrorModal(`❌ INVALID DATA: Team "${away}" appears more than once. Each team can only play one match per week.`);
+            return;
         }
         usedTeams.add(away);
 
@@ -447,28 +474,18 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
         });
     }
 
-    // Error Handling
-    if (!isFormValid) {
-        alert("⚠️ Fill all 10 match slots.");
-        return;
-    }
-
-    if (duplicateTeam) {
-        alert(`❌ INVALID DATA: Team "${duplicateTeam}" appears more than once in this batch. Each team can only play one match per week.`);
-        return;
-    }
-
-    // If we pass all checks, proceed to Database Scanning
+    // Database Scanning
     const batchData = { league, season, trn, week, matches: matchesArray };
     const syncBtn = e.target.querySelector('button[type="submit"]');
-    syncBtn.innerText = "DATABASE SCANNING...";
+    syncBtn.innerText = "SCANNING DATABASE...";
     syncBtn.disabled = true;
     
     const historyResult = await checkHistory(matchesArray);
 
     syncBtn.disabled = false;
+    syncBtn.innerText = "Sync TRN Data";
+
     if (historyResult) {
-        syncBtn.innerText = "Sync TRN Data";
         showDuplicateModal(historyResult.type, historyResult.record, batchData);
     } else {
         executeFinalSync(batchData);
