@@ -100,14 +100,13 @@
                 <p id="loadingText" class="text-slate-500 font-black text-xs uppercase tracking-widest">Querying TRN Database...</p>
             </div>
 
-            <div id="resultsGrid" class="hidden grid gap-3"></div>
+            <div id="resultsGrid" class="hidden flex flex-col gap-3"></div>
         </div>
     </main>
 
 <script>
-  let fetchController = null;
+let fetchController = null;
 
-// --- STEP NAVIGATION HELPER ---
 function stepValue(id, direction) {
     const el = document.getElementById(id);
     const currentIndex = el.selectedIndex;
@@ -118,15 +117,14 @@ function stepValue(id, direction) {
     }
 }
 
-// --- OPTIMIZED NAVIGATION ---
 function navigateToOriginal(season, trn, week) {
     document.getElementById('seasonSelect').value = season;
     document.getElementById('trnSelect').value = trn;
     document.getElementById('weekSelect').value = week;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     triggerFetch();
 }
 
-// --- ADVANCED FINGERPRINTING ---
 function getFingerprints(matches) {
     if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "", pairingSeq: "", pairingScrambled: "" };
     
@@ -142,7 +140,6 @@ function getFingerprints(matches) {
     return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
 }
 
-// --- TRIGGER FETCH ---
 async function triggerFetch() {
     const season = document.getElementById('seasonSelect').value;
     const trn = document.getElementById('trnSelect').value;
@@ -158,7 +155,6 @@ async function triggerFetch() {
         const res = await fetch(`/api/api?league=english&season=${season}&trn=${trn}&week=${week}`);
         const data = await res.json();
         
-        // Data structure from your updated API is an array of records
         const record = data.find(r => r.season == season && r.trn == trn && r.week == week);
         
         await renderResults(record ? record.matches : [], { season, trn, week });
@@ -170,7 +166,6 @@ async function triggerFetch() {
     }
 }
 
-// --- RENDER & SCAN (OPTIMIZED < 1 SEC) ---
 async function renderResults(matches, currentContext) {
     const grid = document.getElementById('resultsGrid');
     if (!matches || matches.length === 0) {
@@ -180,68 +175,62 @@ async function renderResults(matches, currentContext) {
         return;
     }
 
-    let alertHtml = "";
+    let alertsArray = [];
 
     try {
-        // PERFORMANCE BOOST: Use compact mode and timestamp to prevent caching lag
         const allRes = await fetch(`/api/api?league=english&compact=true&t=${Date.now()}`);
         const allData = await allRes.json();
         const currentKeys = getFingerprints(matches);
 
-        let duplicateFound = null;
-        let matchType = ""; 
-        let color = "indigo";
-
-        // FAST SCANNING LOOP
         for (let i = 0; i < allData.length; i++) {
             const record = allData[i];
             if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
 
             const pastKeys = getFingerprints(record.matches);
 
+            // 1. Exact Match
             if (currentKeys.exact === pastKeys.exact) {
-                duplicateFound = record;
-                matchType = "EXACT SEQUENCE MATCH";
-                color = "indigo";
-                break; 
-            } else if (currentKeys.scrambled === pastKeys.scrambled) {
-                duplicateFound = record;
-                matchType = "REARRANGED SEQUENCE";
-                color = "amber";
-            } else if (currentKeys.pairingSeq === pastKeys.pairingSeq) {
-                duplicateFound = record;
-                matchType = "IDENTICAL FIXTURE LIST";
-                color = "cyan";
-            } else if (currentKeys.outcome === pastKeys.outcome) {
-                duplicateFound = record;
-                matchType = "SCORE PATTERN MATCH";
-                color = "rose";
+                alertsArray.push({ type: "EXACT SEQUENCE MATCH", color: "indigo", data: record });
+            } 
+            // 2. Rearranged Match
+            else if (currentKeys.scrambled === pastKeys.scrambled) {
+                alertsArray.push({ type: "REARRANGED SEQUENCE", color: "amber", data: record });
+            } 
+            // 3. Team/Fixture Match (Same teams playing each other)
+            else if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) {
+                alertsArray.push({ type: "TEAM PATTERN MATCH", color: "emerald", data: record });
+            }
+            // 4. Exact Fixture Sequence
+            else if (currentKeys.pairingSeq === pastKeys.pairingSeq) {
+                alertsArray.push({ type: "IDENTICAL FIXTURE LIST", color: "cyan", data: record });
+            } 
+            // 5. Score Pattern Match
+            else if (currentKeys.outcome === pastKeys.outcome) {
+                alertsArray.push({ type: "SCORE PATTERN MATCH", color: "rose", data: record });
             }
         }
-
-        if (duplicateFound) {
-            alertHtml = `
-                <div class="bg-${color}-600 border-l-4 border-${color}-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-white text-lg font-black uppercase tracking-tighter">${matchType}</h3>
-                                <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">Identified in S${duplicateFound.season} TRN ${duplicateFound.trn} Week ${duplicateFound.week}</p>
-                            </div>
-                        </div>
-                        <button onclick="navigateToOriginal('${duplicateFound.season}', '${duplicateFound.trn}', '${duplicateFound.week}')" 
-                            class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
-                            Jump to Record
-                        </button>
-                    </div>
-                </div>`;
-        }
     } catch (e) { console.error("Cross-check error:", e); }
+
+    const alertHtml = alertsArray.map(alert => `
+        <div class="bg-${alert.color}-600 border-l-4 border-${alert.color}-400 p-4 rounded-xl mb-2 shadow-lg animate-bounce-short">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-sm font-black uppercase tracking-tighter">${alert.type}</h3>
+                        <p class="text-white/80 text-[8px] font-bold uppercase tracking-widest">S${alert.data.season} | TRN ${alert.data.trn} | WEEK ${alert.data.week}</p>
+                    </div>
+                </div>
+                <button onclick="navigateToOriginal('${alert.data.season}', '${alert.data.trn}', '${alert.data.week}')" 
+                    class="bg-slate-900 text-white px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
+                    Jump to Record
+                </button>
+            </div>
+        </div>`).join('');
 
     const matchCards = matches.map((match) => {
         const hName = match.homeTeam || match.home || "N/A";
@@ -267,7 +256,6 @@ async function renderResults(matches, currentContext) {
     grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
 }
 
-// Initial Load
 window.onload = triggerFetch;
 </script>
 </body>

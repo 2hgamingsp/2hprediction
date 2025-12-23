@@ -5,7 +5,6 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
-
 app.use(cors()); 
 app.use(express.json());
 
@@ -13,135 +12,126 @@ const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
 async function connectToDatabase() {
-    if (!uri) {
-        throw new Error("MONGODB_URI is not defined in environment variables");
-    }
+    if (!uri) throw new Error("MONGODB_URI is not defined");
     if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
         return cachedClient;
     }
-    try {
-        const client = new MongoClient(uri, { 
-            serverSelectionTimeoutMS: 5000,
-            connectTimeoutMS: 10000, 
-        });
-        await client.connect();
-        cachedClient = client;
-        return client;
-    } catch (err) {
-        console.error("Failed to connect to MongoDB:", err);
-        throw err;
-    }
+    const client = new MongoClient(uri, { 
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 10000, 
+    });
+    await client.connect();
+    cachedClient = client;
+    return client;
 }
 
 function getCollectionName(league) {
-    if (!league) return "matches"; 
-    const cleanLeague = league.toLowerCase().trim();
-    return `${cleanLeague}_matches`;
+    return `${(league || "matches").toLowerCase().trim()}_matches`;
 }
 
-// --- GET ROUTE (OPTIMIZED) ---
+/**
+ * Helper to generate comparison keys (Fingerprints)
+ */
+const getFingerprints = (matches) => {
+    if (!matches || matches.length === 0) return {};
+    
+    const getH = (m) => (m.homeTeam || m.home || "").trim().toLowerCase();
+    const getA = (m) => (m.awayTeam || m.away || m.visitor || "").trim().toLowerCase();
+
+    const exact = matches.map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).join('|');
+    const scrambled = matches.map(m => `${getH(m)}:${m.homeScore}-${m.awayScore}:${getA(m)}`).sort().join('|');
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+    const pairingSeq = matches.map(m => `${getH(m)}v${getA(m)}`).join('|');
+    const pairingScrambled = matches.map(m => `${getH(m)}v${getA(m)}`).sort().join('|');
+
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
+};
+
+// --- GET ROUTE ---
 app.get("/api/api", async (req, res) => {
     try {
-        const { season, trn, week, league, homeTeam, awayTeam, compact } = req.query;
-        
+        const { season, trn, week, league, compact, homeTeam, awayTeam } = req.query;
         if (!league) return res.status(400).json({ error: "League parameter is required" });
 
         const client = await connectToDatabase();
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // 1. FAST INDEXING: Ensure the database is indexed for these fields
-        // This makes searches across thousands of records nearly instant.
-        collection.createIndex({ season: -1, trn: -1, week: -1 });
-
-        // SCENARIO 1: Historical Matchup Check
+        // Scenario 1: Specific Matchup Search
         if (homeTeam && awayTeam) {
-            const historicalRecords = await collection.find({
-                "matches": {
-                    $elemMatch: {
-                        homeTeam: homeTeam.toUpperCase().trim(),
-                        awayTeam: awayTeam.toUpperCase().trim()
-                    }
-                }
-            })
-            .project({ matches: 1, season: 1, trn: 1, week: 1 }) // Only return what's needed
-            .sort({ season: -1, trn: -1 })
-            .limit(50) // Limit to 50 most recent for speed
-            .toArray();
-
-            const response = historicalRecords.map(doc => {
-                const match = doc.matches.find(m => 
-                    m.homeTeam === homeTeam.toUpperCase().trim() && 
-                    m.awayTeam === awayTeam.toUpperCase().trim()
-                );
-                return {
-                    homeTeam: match.homeTeam,
-                    awayTeam: match.awayTeam,
-                    homeScore: match.homeScore,
-                    awayScore: match.awayScore,
-                    season: doc.season,
-                    trn: doc.trn,
-                    week: doc.week
-                };
-            });
-
-            return res.status(200).json(response);
+            const history = await collection.find({
+                "matches": { $elemMatch: { 
+                    homeTeam: homeTeam.toUpperCase().trim(), 
+                    awayTeam: awayTeam.toUpperCase().trim() 
+                }}
+            }).project({ matches: 1, season: 1, trn: 1, week: 1 }).limit(50).toArray();
+            return res.status(200).json(history);
         }
 
-        // SCENARIO 2: Filtered Fetch / Duplicate Scan
+        // Scenario 2: Standard Fetch + Pattern Analysis
         const query = {};
-        if (season) query.season = season;
-        if (trn) query.trn = trn;
-        if (week) query.week = week;
+        if (season) query.season = season.toString();
+        if (trn) query.trn = trn.toString();
+        if (week) query.week = week.toString();
 
-        // SPEED BOOSTER: Use projection to reduce payload size
-        // If compact=true, we don't send extra database IDs or heavy strings
-        let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
+        const results = await collection.find(query).sort({ season: -1, trn: -1, week: -1 }).toArray();
 
-        if (compact === "true") {
-            cursor = cursor.project({
-                _id: 0,
-                matches: 1,
-                season: 1,
-                trn: 1,
-                week: 1
+        // If user is looking for a specific week, we perform the "Duplicate Scan"
+        if (season && trn && week && results.length > 0) {
+            const currentWeek = results[0];
+            const currentKeys = getFingerprints(currentWeek.matches);
+            
+            // Fetch all other weeks in this league to compare
+            const allOtherWeeks = await collection.find({ 
+                _id: { $ne: currentWeek._id } 
+            }).project({ matches: 1, season: 1, trn: 1, week: 1 }).toArray();
+
+            const alerts = [];
+            allOtherWeeks.forEach(pastWeek => {
+                const pastKeys = getFingerprints(pastWeek.matches);
+
+                if (currentKeys.exact === pastKeys.exact) {
+                    alerts.push({ type: "EXACT SEQUENCE MATCH", color: "indigo", data: pastWeek });
+                } else if (currentKeys.scrambled === pastKeys.scrambled) {
+                    alerts.push({ type: "REARRANGED SEQUENCE", color: "amber", data: pastWeek });
+                } else if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) {
+                    alerts.push({ type: "TEAM PATTERN MATCH", color: "emerald", data: pastWeek });
+                } else if (currentKeys.pairingSeq === pastKeys.pairingSeq) {
+                    alerts.push({ type: "IDENTICAL FIXTURE LIST", color: "cyan", data: pastWeek });
+                } else if (currentKeys.outcome === pastKeys.outcome) {
+                    alerts.push({ type: "SCORE PATTERN MATCH", color: "rose", data: pastWeek });
+                }
             });
-        }
 
-        const limitValue = (season || trn || week) ? 0 : 1000;
-        const results = await cursor.limit(limitValue).toArray();
+            // Return both the matches and the pattern alerts
+            return res.status(200).json({ matches: currentWeek.matches, alerts });
+        }
 
         res.status(200).json(results);
-        
     } catch (error) {
-        console.error("Fetch Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// --- POST ROUTE (SANITIZED) ---
+// --- POST ROUTE ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
         const matchData = batch.matches || batch.allMatches;
-
-        if (!matchData || matchData.length === 0) {
-            return res.status(400).json({ error: "No match data provided." });
-        }
+        if (!matchData) return res.status(400).json({ error: "No data" });
 
         const client = await connectToDatabase();
         const db = client.db();
         const collection = db.collection(getCollectionName(batch.league));
 
         const sanitizedMatches = matchData.map(m => ({
-            homeTeam: (m.homeTeam || m.home || "UNKNOWN").toString().toUpperCase().trim(),
-            awayTeam: (m.awayTeam || m.away || m.visitor || "UNKNOWN").toString().toUpperCase().trim(),
+            homeTeam: (m.homeTeam || m.home || "N/A").toString().toUpperCase().trim(),
+            awayTeam: (m.awayTeam || m.away || "N/A").toString().toUpperCase().trim(),
             homeScore: parseInt(m.homeScore) || 0,
             awayScore: parseInt(m.awayScore) || 0
         }));
 
         const customId = `${batch.league.toLowerCase()}-${batch.season}-${batch.trn}-${batch.week}`;
-        
         const updateDoc = {
             _id: customId,
             league: batch.league.toLowerCase(),
@@ -152,20 +142,9 @@ app.post("/api/api", async (req, res) => {
             lastUpdated: new Date()
         };
 
-        const result = await collection.updateOne(
-            { _id: customId },
-            { $set: updateDoc },
-            { upsert: true }
-        );
-
-        res.status(200).json({ 
-            success: true, 
-            id: customId, 
-            action: result.upsertedCount > 0 ? "created" : "updated" 
-        });
-
+        await collection.updateOne({ _id: customId }, { $set: updateDoc }, { upsert: true });
+        res.status(200).json({ success: true, id: customId });
     } catch (error) {
-        console.error("Post Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
