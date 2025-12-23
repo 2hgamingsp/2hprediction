@@ -12,25 +12,21 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
+// UPDATED: Optimized for Serverless fast-fail and connection reuse
 async function connectToDatabase() {
+    if (cachedClient) {
+        return cachedClient;
+    }
     if (!uri) {
         throw new Error("MONGODB_URI is not defined in environment variables");
     }
-    if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
-        return cachedClient;
-    }
-    try {
-        const client = new MongoClient(uri, { 
-            serverSelectionTimeoutMS: 5000,
-            connectTimeoutMS: 10000, 
-        });
-        await client.connect();
-        cachedClient = client;
-        return client;
-    } catch (err) {
-        console.error("Failed to connect to MongoDB:", err);
-        throw err;
-    }
+    const client = new MongoClient(uri, { 
+        // Best for Serverless: shorter timeouts to fail fast and retry
+        serverSelectionTimeoutMS: 5000,
+    });
+    await client.connect();
+    cachedClient = client;
+    return client;
 }
 
 function getCollectionName(league) {
@@ -50,40 +46,25 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // 1. FAST INDEXING: Ensure the database is indexed for these fields
-        // This makes searches across thousands of records nearly instant.
-        collection.createIndex({ season: -1, trn: -1, week: -1 });
-
-        // SCENARIO 1: Historical Matchup Check
+        // UPDATED SCENARIO 1: Historical Matchup Check with $ Projection
         if (homeTeam && awayTeam) {
+            const hTeam = homeTeam.toUpperCase().trim();
+            const aTeam = awayTeam.toUpperCase().trim();
+
             const historicalRecords = await collection.find({
-                "matches": {
-                    $elemMatch: {
-                        homeTeam: homeTeam.toUpperCase().trim(),
-                        awayTeam: awayTeam.toUpperCase().trim()
-                    }
-                }
+                "matches": { $elemMatch: { homeTeam: hTeam, awayTeam: aTeam } }
             })
-            .project({ matches: 1, season: 1, trn: 1, week: 1 }) // Only return what's needed
-            .sort({ season: -1, trn: -1 })
-            .limit(50) // Limit to 50 most recent for speed
+            .project({ "matches.$": 1, season: 1, trn: 1, week: 1 }) // Use $ projection to return ONLY the matching match
+            .sort({ season: -1 })
+            .limit(50)
             .toArray();
 
-            const response = historicalRecords.map(doc => {
-                const match = doc.matches.find(m => 
-                    m.homeTeam === homeTeam.toUpperCase().trim() && 
-                    m.awayTeam === awayTeam.toUpperCase().trim()
-                );
-                return {
-                    homeTeam: match.homeTeam,
-                    awayTeam: match.awayTeam,
-                    homeScore: match.homeScore,
-                    awayScore: match.awayScore,
-                    season: doc.season,
-                    trn: doc.trn,
-                    week: doc.week
-                };
-            });
+            const response = historicalRecords.map(doc => ({
+                ...doc.matches[0], // Only the specific match we queried for
+                season: doc.season,
+                trn: doc.trn,
+                week: doc.week
+            }));
 
             return res.status(200).json(response);
         }
@@ -94,8 +75,6 @@ app.get("/api/api", async (req, res) => {
         if (trn) query.trn = trn;
         if (week) query.week = week;
 
-        // SPEED BOOSTER: Use projection to reduce payload size
-        // If compact=true, we don't send extra database IDs or heavy strings
         let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
 
         if (compact === "true") {
