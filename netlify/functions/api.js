@@ -13,9 +13,18 @@ const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
 async function connectToDatabase() {
-    if (cachedClient) return cachedClient;
+    // Corrected logic: Ensure the client exists AND the connection is still alive
+    if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
+        return cachedClient;
+    }
+    
     if (!uri) throw new Error("MONGODB_URI is not defined");
-    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    
+    const client = new MongoClient(uri, { 
+        serverSelectionTimeoutMS: 5000,
+        useUnifiedTopology: true 
+    });
+    
     await client.connect();
     cachedClient = client;
     return client;
@@ -23,11 +32,11 @@ async function connectToDatabase() {
 
 function getCollectionName(league) {
     if (!league) return "matches"; 
-    const cleanLeague = league.toLowerCase().trim();
+    const cleanLeague = league.toString().toLowerCase().trim();
     return `${cleanLeague}_matches`;
 }
 
-// --- GET ROUTE (OPTIMIZED FOR TIMELINE) ---
+// --- GET ROUTE ---
 app.get("/api/api", async (req, res) => {
     try {
         const { season, trn, week, league, homeTeam, awayTeam, compact } = req.query;
@@ -38,7 +47,6 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // SCENARIO 1: Historical Matchup Check (Unchanged)
         if (homeTeam && awayTeam) {
             const hTeam = homeTeam.toUpperCase().trim();
             const aTeam = awayTeam.toUpperCase().trim();
@@ -61,15 +69,11 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Filtered Fetch / Timeline / Duplicate Scan
         const query = {};
-        // Convert to string to match how you save them in the POST route
         if (season) query.season = season.toString();
         if (trn) query.trn = trn.toString();
         if (week) query.week = week.toString();
 
-        // SORTING: Newest Season -> Newest TRN -> Newest Week
-        // This ensures the "Latest" result is always at results[0]
         let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
 
         if (compact === "true") {
@@ -79,13 +83,11 @@ app.get("/api/api", async (req, res) => {
                 season: 1,
                 trn: 1,
                 week: 1,
-                deviceTime: 1,      // ADDED: Needed for frontend labels
-                deviceTimestamp: 1   // ADDED: Helpful for secondary sorting
+                deviceTime: 1,
+                deviceTimestamp: 1 
             });
         }
 
-        // If specific TRN or Season is requested, return everything found (no limit)
-        // If it's a general "fetch everything" request, keep the 1000 limit
         const limitValue = (season || trn || week) ? 5000 : 1000;
         const results = await cursor.limit(limitValue).toArray();
 
@@ -97,14 +99,19 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- POST ROUTE (KEEPING YOUR LOGIC) ---
+// --- POST ROUTE (MODIFIED & CORRECTED) ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
-        const matchData = batch.matches || batch.allMatches;
 
-        if (!matchData || matchData.length === 0) {
-            return res.status(400).json({ error: "No match data provided." });
+        // CORRECTION: Guard against missing league to prevent crash
+        if (!batch.league) {
+            return res.status(400).json({ error: "League name is required." });
+        }
+
+        const matchData = batch.matches || batch.allMatches;
+        if (!matchData || !Array.isArray(matchData) || matchData.length === 0) {
+            return res.status(400).json({ error: "No valid match data array provided." });
         }
 
         const client = await connectToDatabase();
@@ -114,24 +121,29 @@ app.post("/api/api", async (req, res) => {
         const sanitizedMatches = matchData.map(m => ({
             homeTeam: (m.homeTeam || m.home || "UNKNOWN").toString().toUpperCase().trim(),
             awayTeam: (m.awayTeam || m.away || m.visitor || "UNKNOWN").toString().toUpperCase().trim(),
-            homeScore: parseInt(m.homeScore) || 0,
-            awayScore: parseInt(m.awayScore) || 0
+            homeScore: isNaN(parseInt(m.homeScore)) ? 0 : parseInt(m.homeScore),
+            awayScore: isNaN(parseInt(m.awayScore)) ? 0 : parseInt(m.awayScore)
         }));
 
-        const customId = `${batch.league.toLowerCase()}-${batch.season}-${batch.trn}-${batch.week}`;
+        // CORRECTION: Ensure all variables exist for the ID string
+        const safeSeason = (batch.season || "0").toString();
+        const safeTrn = (batch.trn || "0").toString();
+        const safeWeek = (batch.week || "0").toString();
+        const customId = `${batch.league.toLowerCase()}-${safeSeason}-${safeTrn}-${safeWeek}`;
         
         const updateDoc = {
-            _id: customId,
             league: batch.league.toLowerCase(),
-            season: batch.season.toString(),
-            trn: batch.trn.toString(),
-            week: batch.week.toString(),
+            season: safeSeason,
+            trn: safeTrn,
+            week: safeWeek,
             matches: sanitizedMatches,
-            deviceTime: batch.syncedAt,   
-            deviceTimestamp: batch.timestamp, 
+            deviceTime: batch.syncedAt || new Date().toISOString(),   
+            deviceTimestamp: batch.timestamp || Date.now(), 
             serverTime: new Date()        
         };
 
+        // CORRECTION: Using $set ensures we don't accidentally overwrite the entire 
+        // object if you add more fields later, and upsert: true handles the "Create if not exists"
         const result = await collection.updateOne(
             { _id: customId },
             { $set: updateDoc },
