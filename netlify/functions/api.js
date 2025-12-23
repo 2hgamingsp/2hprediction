@@ -12,6 +12,18 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
+/**
+ * Helper to determine collection name based on league
+ */
+function getCollectionName(league) {
+    if (!league) return "matches"; 
+    const cleanLeague = league.toLowerCase().trim();
+    return `${cleanLeague}_matches`;
+}
+
+/**
+ * Optimized Database Connection for Serverless
+ */
 async function connectToDatabase() {
     if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
         return cachedClient;
@@ -35,7 +47,7 @@ async function connectToDatabase() {
     }
 }
 
-// --- GET ROUTE (OPTIMIZED FOR TIMELINE) ---
+// --- GET ROUTE ---
 app.get("/api/api", async (req, res) => {
     try {
         const { season, trn, week, league, homeTeam, awayTeam, compact } = req.query;
@@ -46,7 +58,7 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // SCENARIO 1: Historical Matchup Check (Unchanged)
+        // SCENARIO 1: Historical Matchup Check
         if (homeTeam && awayTeam) {
             const hTeam = homeTeam.toUpperCase().trim();
             const aTeam = awayTeam.toUpperCase().trim();
@@ -69,15 +81,12 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Filtered Fetch / Timeline / Duplicate Scan
+        // SCENARIO 2: Filtered Fetch / Timeline
         const query = {};
-        // Convert to string to match how you save them in the POST route
         if (season) query.season = season.toString();
         if (trn) query.trn = trn.toString();
         if (week) query.week = week.toString();
 
-        // SORTING: Newest Season -> Newest TRN -> Newest Week
-        // This ensures the "Latest" result is always at results[0]
         let cursor = collection.find(query).sort({ season: -1, trn: -1, week: -1 });
 
         if (compact === "true") {
@@ -87,13 +96,12 @@ app.get("/api/api", async (req, res) => {
                 season: 1,
                 trn: 1,
                 week: 1,
-                deviceTime: 1,      // ADDED: Needed for frontend labels
-                deviceTimestamp: 1   // ADDED: Helpful for secondary sorting
+                deviceTime: 1,
+                deviceTimestamp: 1 
             });
         }
 
-        // If specific TRN or Season is requested, return everything found (no limit)
-        // If it's a general "fetch everything" request, keep the 1000 limit
+        // Use 5000 instead of 0 to avoid driver-specific hangs in serverless
         const limitValue = (season || trn || week) ? 5000 : 1000;
         const results = await cursor.limit(limitValue).toArray();
 
@@ -105,7 +113,7 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- POST ROUTE (KEEPING YOUR LOGIC) ---
+// --- POST ROUTE ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
