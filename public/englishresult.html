@@ -13,7 +13,6 @@
         .animate-bounce-short {
             animation: bounce-short 2s ease-in-out infinite;
         }
-        /* Custom scrollbar for better aesthetics */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -99,6 +98,8 @@
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 md:p-8">
+        <div id="alertContainer" class="sticky top-24 z-40 mb-8"></div>
+
         <div id="resultsWrapper">
             <div id="loadingState" class="text-center py-20">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
@@ -111,6 +112,8 @@
 
 <script>
 let allFetchedData = [];
+let foundDuplicates = [];
+let currentDuplicateIndex = 0;
 
 function stepValue(id, direction) {
     const el = document.getElementById(id);
@@ -137,7 +140,6 @@ async function triggerFetch(shouldScroll = false) {
     const loader = document.getElementById('loadingState');
     const container = document.getElementById('timelineContainer');
     
-    // UI selections
     const selSeason = document.getElementById('seasonSelect').value;
     const selTrn = document.getElementById('trnSelect').value;
     const selWeek = document.getElementById('weekSelect').value;
@@ -147,8 +149,6 @@ async function triggerFetch(shouldScroll = false) {
             loader.classList.remove('hidden');
             const res = await fetch(`/api/api?league=english&compact=true&limit=1000`);
             allFetchedData = await res.json();
-            
-            // SORTING: Newest first (Season desc, TRN desc, Week desc)
             allFetchedData.sort((a, b) => {
                 if (b.season !== a.season) return b.season.localeCompare(a.season, undefined, {numeric: true});
                 if (b.trn !== a.trn) return b.trn.localeCompare(a.trn, undefined, {numeric: true});
@@ -156,8 +156,31 @@ async function triggerFetch(shouldScroll = false) {
             });
         }
 
-        container.innerHTML = ''; 
+        // Logic for the Global Modal/Alert
+        const currentRecord = allFetchedData.find(r => r.season == selSeason && r.trn == selTrn && r.week == selWeek);
+        foundDuplicates = [];
+        currentDuplicateIndex = 0;
 
+        if (currentRecord) {
+            const currentKeys = getFingerprints(currentRecord.matches);
+            allFetchedData.forEach(other => {
+                if (other._id === currentRecord._id) return;
+                const pastKeys = getFingerprints(other.matches);
+                let matchType = "";
+                let color = "indigo";
+
+                if (currentKeys.exact === pastKeys.exact) { matchType = "EXACT SEQUENCE MATCH"; color = "indigo"; }
+                else if (currentKeys.scrambled === pastKeys.scrambled) { matchType = "REARRANGED SEQUENCE"; color = "amber"; }
+                else if (currentKeys.pairingSeq === pastKeys.pairingSeq) { matchType = "IDENTICAL FIXTURE LIST"; color = "cyan"; }
+                else if (currentKeys.outcome === pastKeys.outcome) { matchType = "SCORE PATTERN MATCH"; color = "rose"; }
+
+                if (matchType) foundDuplicates.push({ ...other, matchType, color });
+            });
+        }
+
+        updateAlertUI(); // Display the modal if duplicates found
+
+        container.innerHTML = ''; 
         allFetchedData.forEach(record => {
             const isTarget = record.season == selSeason && record.trn == selTrn && record.week == selWeek;
             container.insertAdjacentHTML('beforeend', generateWeekBlock(record, isTarget));
@@ -166,11 +189,7 @@ async function triggerFetch(shouldScroll = false) {
         loader.classList.add('hidden');
 
         if (shouldScroll) {
-            const targetId = `week-${selSeason}-${selTrn}-${selWeek}`;
-            const targetEl = document.getElementById(targetId);
-            if (targetEl) {
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            scrollToRecord(selSeason, selTrn, selWeek);
         }
     } catch (e) {
         console.error("Fetch Error:", e);
@@ -178,60 +197,95 @@ async function triggerFetch(shouldScroll = false) {
     }
 }
 
-function generateWeekBlock(record, isHighlighted) {
-    const borderClass = isHighlighted ? 'border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)]' : 'border-slate-800';
-    const bgClass = isHighlighted ? 'bg-slate-800/80' : 'bg-slate-800/30';
-    
-    // Check for Duplicates (Compare against all other records)
-    const currentKeys = getFingerprints(record.matches);
-    let alertHtml = '';
+function updateAlertUI() {
+    const container = document.getElementById('alertContainer');
+    if (foundDuplicates.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
 
-    const dup = allFetchedData.find(other => 
-        other._id !== record._id && getFingerprints(other.matches).pairingSeq === currentKeys.pairingSeq
-    );
+    const data = foundDuplicates[currentDuplicateIndex];
+    const total = foundDuplicates.length;
 
-    if (dup) {
-        alertHtml = `
-            <div class="bg-cyan-600 border-l-4 border-cyan-400 p-4 rounded-xl mb-6 animate-bounce-short">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white/20 p-2 rounded-lg text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+    container.innerHTML = `
+        <div class="bg-${data.color}-600 border-l-4 border-${data.color}-400 p-6 rounded-2xl shadow-2xl animate-bounce-short relative overflow-hidden backdrop-blur-md">
+            <div class="absolute top-2 right-4 text-white/10 font-black italic text-4xl select-none">#${currentDuplicateIndex + 1}</div>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
                     <div>
-                        <h4 class="text-white text-[10px] font-black uppercase italic">Identical Fixture List</h4>
-                        <p class="text-white/80 text-[8px] font-bold uppercase">Found in S${dup.season} TRN ${dup.trn} Week ${dup.week}</p>
+                        <h3 class="text-white text-lg font-black uppercase tracking-tighter">${data.matchType}</h3>
+                        <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">
+                            Historical Duplicate: S${data.season} TRN ${data.trn} Week ${data.week} — Match ${currentDuplicateIndex + 1} of ${total}
+                        </p>
                     </div>
                 </div>
-            </div>`;
-    }
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="changeDuplicate(-1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button onclick="scrollToRecord('${data.season}', '${data.trn}', '${data.week}')" 
+                        class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl border border-white/10">
+                        Jump to Duplicate
+                    </button>
+                    <button onclick="changeDuplicate(1)" class="p-2 bg-black/20 hover:bg-black/40 rounded-lg text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+}
 
+function changeDuplicate(dir) {
+    currentDuplicateIndex = (currentDuplicateIndex + dir + foundDuplicates.length) % foundDuplicates.length;
+    updateAlertUI();
+}
+
+function scrollToRecord(s, t, w) {
+    const targetId = `week-${s}-${t}-${w}`;
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Flash effect
+        targetEl.classList.add('ring-4', 'ring-white/50');
+        setTimeout(() => targetEl.classList.remove('ring-4', 'ring-white/50'), 2000);
+    }
+}
+
+function generateWeekBlock(record, isHighlighted) {
+    const borderClass = isHighlighted ? 'border-indigo-500 shadow-[0_0_40px_rgba(79,70,229,0.4)]' : 'border-slate-800';
+    const bgClass = isHighlighted ? 'bg-slate-800/90' : 'bg-slate-800/30';
+    
     const matchCards = record.matches.map(m => `
-        <div class="bg-slate-950/40 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between">
-            <div class="flex-1 text-right pr-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.homeTeam}</span></div>
+        <div class="bg-slate-950/40 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between hover:bg-slate-950 transition">
+            <div class="flex-1 text-right pr-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.homeTeam || m.home}</span></div>
             <div class="bg-slate-900 px-3 py-1 rounded border border-slate-700 flex gap-3 font-black text-sm">
                 <span class="text-indigo-400">${m.homeScore}</span>
                 <span class="text-slate-600 text-[8px] self-center">VS</span>
                 <span class="text-rose-400">${m.awayScore}</span>
             </div>
-            <div class="flex-1 text-left pl-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.awayTeam}</span></div>
+            <div class="flex-1 text-left pl-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.awayTeam || m.away}</span></div>
         </div>
     `).join('');
 
     return `
-        <div id="week-${record.season}-${record.trn}-${record.week}" class="p-6 rounded-3xl border-2 ${borderClass} ${bgClass} transition-all duration-500">
+        <div id="week-${record.season}-${record.trn}-${record.week}" class="p-6 rounded-3xl border-2 ${borderClass} ${bgClass} transition-all duration-500 relative">
+            ${isHighlighted ? '<div class="absolute -top-3 left-6 bg-indigo-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg">Current Selection</div>' : ''}
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Season ${record.season}/${parseInt(record.season)+1}</span>
                     <h2 class="text-lg font-black text-indigo-400 uppercase tracking-tighter">TRN ${record.trn} <span class="text-slate-500 mx-1">•</span> Week ${record.week}</h2>
                 </div>
                 <div class="text-right">
-                    <span class="text-[7px] text-slate-500 block uppercase font-black">Record Synced</span>
-                    <span class="text-[9px] text-slate-400 font-mono">${record.deviceTime || 'AUTO-SYNC'}</span>
+                    <span class="text-[7px] text-slate-500 block uppercase font-black">Database Reference</span>
+                    <span class="text-[9px] text-slate-400 font-mono">${record._id.slice(-8).toUpperCase()}</span>
                 </div>
             </div>
-            ${alertHtml}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 ${matchCards}
             </div>
