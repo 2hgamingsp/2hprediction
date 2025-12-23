@@ -12,9 +12,7 @@ app.use(express.json());
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
-
 async function connectToDatabase() {
-    // 1. Check if URI exists before trying to use it
     if (!uri) {
         throw new Error("MONGODB_URI is not defined in environment variables");
     }
@@ -26,7 +24,6 @@ async function connectToDatabase() {
     try {
         const client = new MongoClient(uri, { 
             serverSelectionTimeoutMS: 5000,
-            // These options help with stability in serverless environments
             connectTimeoutMS: 10000, 
         });
         await client.connect();
@@ -55,7 +52,7 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // SCENARIO 1: Historical Matchup Check (Team vs Team)
+        // SCENARIO 1: Historical Matchup Check (Single Game)
         if (homeTeam && awayTeam) {
             const historicalRecords = await collection.find({
                 "matches": {
@@ -66,7 +63,6 @@ app.get("/api/api", async (req, res) => {
                 }
             }).sort({ lastUpdated: -1 }).toArray();
 
-            // Map results to extract the specific match data
             const response = historicalRecords.map(doc => {
                 const match = doc.matches.find(m => m.homeTeam === homeTeam.toUpperCase() && m.awayTeam === awayTeam.toUpperCase());
                 return {
@@ -83,15 +79,14 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Specific Filter or Full League Fetch
+        // SCENARIO 2: Specific Filter or Full League Fetch (for 10/10 Batch Check)
         const query = {};
         if (season) query.season = season;
         if (trn) query.trn = trn;
         if (week) query.week = week;
 
-        // If no specific filters (season/trn/week) are provided, 
-        // this will return all records for the duplicate batch check.
-        const results = await collection.find(query).sort({ lastUpdated: -1 }).toArray();
+        // Sorting by TRN descending helps find the most recent duplicates faster
+        const results = await collection.find(query).sort({ trn: -1 }).toArray();
         res.status(200).json(results);
         
     } catch (error) {
@@ -100,11 +95,15 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- POST ROUTE (UPSERT LOGIC) ---
+// --- UPDATED POST ROUTE ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
-        if (!batch.allMatches || batch.allMatches.length === 0) {
+        
+        // Handle both 'matches' and 'allMatches' naming for backwards compatibility
+        const matchData = batch.matches || batch.allMatches;
+
+        if (!matchData || matchData.length === 0) {
             return res.status(400).json({ error: "No match data provided." });
         }
 
@@ -112,27 +111,28 @@ app.post("/api/api", async (req, res) => {
         const db = client.db();
         const collection = db.collection(getCollectionName(batch.league));
 
-        // Consistent ID format for easy lookup/overwriting
+        // Custom ID format: ensures one record per TRN per Week per Season
         const customId = `${batch.league}-${batch.season}-TRN${batch.trn}-W${batch.week}`;
         
+        const updateDoc = {
+            batchId: customId,
+            league: batch.league,
+            season: batch.season,
+            trn: batch.trn,
+            week: batch.week,
+            matches: matchData, // Standardized to 'matches'
+            lastUpdated: new Date()
+        };
+
         await collection.updateOne(
             { _id: customId },
-            { 
-                $set: {
-                    batchId: customId,
-                    league: batch.league,
-                    season: batch.season,
-                    trn: batch.trn,
-                    week: batch.week,
-                    matches: batch.allMatches,
-                    lastUpdated: new Date()
-                } 
-            },
+            { $set: updateDoc },
             { upsert: true }
         );
 
         res.status(200).json({ success: true, id: customId });
     } catch (error) {
+        console.error("Post Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
