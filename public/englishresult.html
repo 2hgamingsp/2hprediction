@@ -105,7 +105,26 @@
     </main>
 
 <script>
-    let fetchController = null;
+   let fetchController = null;
+
+    // Helper to generate different types of fingerprints for detection
+    function getFingerprints(matches) {
+        if (!matches || matches.length === 0) return { exact: "", scrambled: "", outcome: "" };
+        
+        // 1. Exact Fingerprint (Order Matters)
+        const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+        // 2. Scrambled Fingerprint (Order Doesn't Matter)
+        const scrambled = [...matches]
+            .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
+            .sort()
+            .join('|');
+
+        // 3. Outcome Pattern (Scores Only - Order Matters)
+        const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+
+        return { exact, scrambled, outcome };
+    }
 
     function navigateToOriginal(season, trn, week) {
         document.getElementById('seasonSelect').value = season;
@@ -159,8 +178,6 @@
         try {
             const queryParams = `season=${season}&trn=${trn}&week=${week}&league=english`;
             const response = await fetch(`/api/api?${queryParams}`, { signal });
-            
-            if (!response.ok) throw new Error('Not Found');
             const data = await response.json();
 
             grid.style.opacity = "1";
@@ -178,19 +195,7 @@
             grid.style.opacity = "1";
             grid.innerHTML = `<div class="text-center py-10 text-rose-500 font-black text-[10px] uppercase tracking-widest">Database Error: Connection Refused</div>`;
             loader.classList.add('hidden');
-            grid.classList.remove('hidden');
         }
-    }
-
-    // --- CRITICAL FIX: FUZZY FINGERPRINTING ---
-    function generateBatchFingerprint(matches) {
-        if (!matches || matches.length === 0) return "";
-        // We trim spaces and force lowercase to ensure "TEAM A" matches "team a "
-        return matches.map(m => {
-            const h = m.homeTeam.toString().trim().toLowerCase();
-            const a = m.awayTeam.toString().trim().toLowerCase();
-            return `${h}:${m.homeScore}-${m.awayScore}:${a}`;
-        }).join('|');
     }
 
     async function renderResults(matches, currentContext) {
@@ -203,71 +208,82 @@
             return;
         }
 
-        let batchAlertHtml = "";
+        let alertHtml = "";
 
-        // --- 1. HISTORICAL CROSS-CHECK ---
+        // --- HISTORICAL COMPARISON LOGIC ---
         try {
             const allRes = await fetch(`/api/api?league=english`);
             const allData = await allRes.json();
-            const currentFingerprint = generateBatchFingerprint(matches);
+            const currentKeys = getFingerprints(matches);
 
-            const duplicateBatch = allData.find(record => {
-                // Ensure we aren't comparing the record to itself
-                const isNotSelf = (record.season != currentContext.season || record.trn != currentContext.trn || record.week != currentContext.week);
-                const historicalFingerprint = generateBatchFingerprint(record.matches);
-                return isNotSelf && historicalFingerprint === currentFingerprint;
-            });
+            let duplicateFound = null;
+            let matchType = ""; // EXACT, SCRAMBLED, or OUTCOME
 
-            if (duplicateBatch) {
-                batchAlertHtml = `
-                    <div class="bg-indigo-600 border-l-4 border-indigo-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
+            for (const record of allData) {
+                // Skip self
+                if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
+
+                const pastMatches = record.matches || record.allMatches;
+                if (!pastMatches) continue;
+                
+                const pastKeys = getFingerprints(pastMatches);
+
+                if (currentKeys.exact === pastKeys.exact) {
+                    duplicateFound = record;
+                    matchType = "EXACT SEQUENCE";
+                    break; 
+                } else if (currentKeys.scrambled === pastKeys.scrambled) {
+                    duplicateFound = record;
+                    matchType = "REARRANGED SEQUENCE";
+                } else if (currentKeys.outcome === pastKeys.outcome && !duplicateFound) {
+                    duplicateFound = record;
+                    matchType = "SCORE PATTERN MATCH";
+                }
+            }
+
+            if (duplicateFound) {
+                const color = matchType === "EXACT SEQUENCE" ? "indigo" : (matchType === "REARRANGED SEQUENCE" ? "amber" : "rose");
+                alertHtml = `
+                    <div class="bg-${color}-600 border-l-4 border-${color}-400 p-6 rounded-2xl mb-8 shadow-2xl animate-bounce-short">
                         <div class="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div class="flex items-center gap-4">
-                                <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white text-lg font-black uppercase tracking-tighter">DUPLICATE DETECTED</h3>
-                                    <p class="text-indigo-100 text-[10px] font-bold opacity-90 uppercase tracking-widest">Matches S${duplicateBatch.season} TRN ${duplicateBatch.trn} Week ${duplicateBatch.week}</p>
+                                    <h3 class="text-white text-lg font-black uppercase tracking-tighter">${matchType}</h3>
+                                    <p class="text-white/80 text-[10px] font-bold uppercase tracking-widest">Identified in S${duplicateFound.season} TRN ${duplicateFound.trn} Week ${duplicateFound.week}</p>
                                 </div>
                             </div>
-                            
-                            <button onclick="navigateToOriginal('${duplicateBatch.season}', '${duplicateBatch.trn}', '${duplicateBatch.week}')" 
+                            <button onclick="navigateToOriginal('${duplicateFound.season}', '${duplicateFound.trn}', '${duplicateFound.week}')" 
                                 class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2 border border-white/10">
-                                View Original Pattern
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
+                                Compare Patterns
                             </button>
                         </div>
                     </div>`;
             }
-        } catch (e) { 
-            console.error("Historical cross-check failed", e); 
-        }
+        } catch (e) { console.error("Cross-check error:", e); }
 
-        const matchCards = matches.map((match) => {
-            return `
-                <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
-                    <div class="flex items-center justify-between w-full">
-                        <div class="flex-1 text-right pr-4">
-                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
-                        </div>
-                        <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
-                            <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
-                            <span class="text-slate-700 font-bold text-[10px]">VS</span>
-                            <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
-                        </div>
-                        <div class="flex-1 text-left pl-4">
-                            <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
-                        </div>
+        const matchCards = matches.map((match) => `
+            <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex-1 text-right pr-4">
+                        <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
                     </div>
-                </div>`;
-        }).join('');
+                    <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
+                        <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
+                        <span class="text-slate-700 font-bold text-[10px]">VS</span>
+                        <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
+                    </div>
+                    <div class="flex-1 text-left pl-4">
+                        <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
+                    </div>
+                </div>
+            </div>`).join('');
 
-        grid.innerHTML = batchAlertHtml + `<div class="grid gap-3">${matchCards}</div>`;
+        grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
     }
 </script>
 </body>

@@ -228,11 +228,21 @@
 // --- STATE MANAGEMENT ---
 let pendingBatchData = null;
 
-// HELPER: Create a unique fingerprint of the 10 matches to detect duplicates
-function generateBatchFingerprint(matches) {
-    return matches.map(m => 
-        `${m.homeTeam}:${m.homeScore}-${m.awayScore}:${m.awayTeam}`
-    ).join('|');
+// HELPER: Improved Fingerprinting
+function getFingerprints(matches) {
+    // 1. Exact Fingerprint (Order Matters)
+    const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
+
+    // 2. Scrambled Fingerprint (Order Doesn't Matter - Sorts matches alphabetically)
+    const scrambled = [...matches]
+        .map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`)
+        .sort()
+        .join('|');
+
+    // 3. Outcome Pattern (Scores Only - Order Matters)
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+
+    return { exact, scrambled, outcome };
 }
 
 function stepValue(id, direction) {
@@ -261,34 +271,35 @@ function closeDuplicateModal(proceedWithSync = false) {
     }, 300);
 }
 
-function showDuplicateModal(info, batchData, isFullBatchMatch = false) {
+function showDuplicateModal(type, pastRecord, batchData) {
     pendingBatchData = batchData;
     const modal = document.getElementById('duplicateModal');
     const content = document.getElementById('duplicateContent');
     
-    if (isFullBatchMatch) {
-        content.innerHTML = `
-            <div class="bg-indigo-500/20 border border-indigo-500/50 p-4 rounded-xl mb-4">
-                <p class="text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ Full Sequence Duplicate</p>
-                <p class="text-white text-xs leading-relaxed">
-                    This exact set of 10 results is identical to 
-                    <span class="font-bold text-indigo-300">Season ${info.past.season} | TRN ${info.past.trn} (Week ${info.past.week})</span>.
-                </p>
-            </div>
-            <p class="text-slate-400 text-[10px] uppercase font-bold text-center">Do you want to sync this as a repeat?</p>
-        `;
-    } else {
-        content.innerHTML = `
-            <p class="text-slate-400 text-xs">The matchup <span class="text-white font-bold">${info.current.home} vs ${info.current.away}</span> has been seen before.</p>
-            <div class="bg-slate-900/50 p-4 rounded-xl border border-white/5">
-                <p class="text-[9px] text-indigo-500 font-black uppercase mb-1">Previous Result:</p>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-bold text-white">${info.past.homeTeam} ${info.past.homeScore} - ${info.past.awayScore} ${info.past.awayTeam}</span>
-                    <span class="text-[10px] text-slate-500 font-bold">TRN ${info.past.trn}</span>
-                </div>
-            </div>
-        `;
+    let title = "Duplicate Found";
+    let message = "";
+    let colorClass = "indigo";
+
+    if (type === 'EXACT') {
+        title = "EXACT SEQUENCE MATCH";
+        message = `This exact set of 10 results is identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week})</span>.`;
+    } else if (type === 'SCRAMBLED') {
+        title = "REARRANGED SEQUENCE";
+        colorClass = "amber";
+        message = `All 10 matchups and scores exist in <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but the arrangement (order) is different.`;
+    } else if (type === 'OUTCOME') {
+        title = "SCORE PATTERN MATCH";
+        colorClass = "rose";
+        message = `The sequence of 10 scores (Results) is identical to <span class="text-white font-bold">S${pastRecord.season} TRN ${pastRecord.trn}</span>, but the teams are different.`;
     }
+
+    content.innerHTML = `
+        <div class="bg-${colorClass}-500/20 border border-${colorClass}-500/50 p-4 rounded-xl mb-4">
+            <p class="text-${colorClass}-400 text-[10px] font-black uppercase tracking-widest mb-1">⚠️ ${title}</p>
+            <p class="text-white text-xs leading-relaxed">${message}</p>
+        </div>
+        <p class="text-slate-400 text-[10px] uppercase font-bold text-center italic">Potential repetition detected. Proceed?</p>
+    `;
     
     modal.classList.remove('hidden');
     setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
@@ -323,33 +334,29 @@ async function executeFinalSync(batchData) {
     }
 }
 
-// --- LOGIC FUNCTIONS ---
-async function checkHistory(currentBatchFingerprint, firstMatch) {
+// --- CORE DETECTION LOGIC ---
+async function checkHistory(currentMatches) {
     try {
-        // Fetch historical data for comparison
         const response = await fetch(`/api/api?league=english`);
         const allData = await response.json();
-        
-        // 1. Check for EXACT 10-MATCH BATCH DUPLICATE
-        const batchMatch = allData.find(record => {
-            // Match against matches array stored in the database
-            const pastFingerprint = generateBatchFingerprint(record.matches || record.allMatches);
-            return pastFingerprint === currentBatchFingerprint;
-        });
+        const currentKeys = getFingerprints(currentMatches);
 
-        if (batchMatch) return { type: 'FULL_BATCH', record: batchMatch };
+        // Check against every record in DB
+        for (const record of allData) {
+            const pastMatches = record.matches || record.allMatches;
+            if (!pastMatches || pastMatches.length !== 10) continue;
 
-        // 2. Fallback: Check if first match appeared before (optional)
-        const singleMatch = allData.find(record => 
-            (record.matches || record.allMatches).some(m => m.homeTeam === firstMatch.home && m.awayTeam === firstMatch.away)
-        );
-        
-        if (singleMatch) {
-            const matchesArr = singleMatch.matches || singleMatch.allMatches;
-            const matchDetails = matchesArr.find(m => m.homeTeam === firstMatch.home && m.awayTeam === firstMatch.away);
-            return { type: 'SINGLE', record: { ...matchDetails, season: singleMatch.season, trn: singleMatch.trn, week: singleMatch.week } };
+            const pastKeys = getFingerprints(pastMatches);
+
+            // Level 1: Exact Match
+            if (currentKeys.exact === pastKeys.exact) return { type: 'EXACT', record };
+
+            // Level 2: Scrambled Match (Same Matchups/Scores, different order)
+            if (currentKeys.scrambled === pastKeys.scrambled) return { type: 'SCRAMBLED', record };
+
+            // Level 3: Outcome Match (Same sequence of scores, different teams)
+            if (currentKeys.outcome === pastKeys.outcome) return { type: 'OUTCOME', record };
         }
-
         return null; 
     } catch (e) { return null; }
 }
@@ -386,21 +393,15 @@ document.getElementById('matchForm').addEventListener('submit', async (e) => {
         return;
     }
 
-    const currentFingerprint = generateBatchFingerprint(matchesArray);
     const batchData = { league, season, trn, week, matches: matchesArray };
-
     const syncBtn = e.target.querySelector('button[type="submit"]');
-    syncBtn.innerText = "SCANNING DB...";
+    syncBtn.innerText = "SCANNING DATABASE...";
     
-    const historyResult = await checkHistory(currentFingerprint, { home: matchesArray[0].homeTeam, away: matchesArray[0].awayTeam });
+    const historyResult = await checkHistory(matchesArray);
 
     if (historyResult) {
         syncBtn.innerText = "Sync TRN Data";
-        showDuplicateModal(
-            { current: { home: matchesArray[0].homeTeam, away: matchesArray[0].awayTeam }, past: historyResult.record },
-            batchData,
-            historyResult.type === 'FULL_BATCH'
-        );
+        showDuplicateModal(historyResult.type, historyResult.record, batchData);
     } else {
         executeFinalSync(batchData);
     }
