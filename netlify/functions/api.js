@@ -39,7 +39,7 @@ function getCollectionName(league) {
     return `${cleanLeague}_matches`;
 }
 
-// --- UPDATED GET ROUTE ---
+// --- GET ROUTE ---
 app.get("/api/api", async (req, res) => {
     try {
         const { season, trn, week, league, homeTeam, awayTeam } = req.query;
@@ -50,7 +50,7 @@ app.get("/api/api", async (req, res) => {
         const db = client.db(); 
         const collection = db.collection(getCollectionName(league));
 
-        // SCENARIO 1: Historical Matchup Check (Single Game History)
+        // SCENARIO 1: Historical Matchup Check
         if (homeTeam && awayTeam) {
             const historicalRecords = await collection.find({
                 "matches": {
@@ -81,14 +81,12 @@ app.get("/api/api", async (req, res) => {
             return res.status(200).json(response);
         }
 
-        // SCENARIO 2: Specific Filter or Full League Fetch (for Pattern Detection)
+        // SCENARIO 2: Filtered Fetch
         const query = {};
         if (season) query.season = season;
         if (trn) query.trn = trn;
         if (week) query.week = week;
 
-        // If searching for a specific week, we don't limit. 
-        // If scanning the whole league for patterns, we limit to avoid crashing the browser.
         const limitValue = (season || trn || week) ? 0 : 2000;
 
         const results = await collection.find(query)
@@ -104,7 +102,7 @@ app.get("/api/api", async (req, res) => {
     }
 });
 
-// --- UPDATED POST ROUTE ---
+// --- POST ROUTE (FIXED FOR AWAY TEAM LOGIC) ---
 app.post("/api/api", async (req, res) => {
     try {
         const batch = req.body;
@@ -118,16 +116,20 @@ app.post("/api/api", async (req, res) => {
         const db = client.db();
         const collection = db.collection(getCollectionName(batch.league));
 
-        // Sanitize match data: Trim and Uppercase for accurate fingerprinting
-        const sanitizedMatches = matchData.map(m => ({
-            homeTeam: m.homeTeam.toString().toUpperCase().trim(),
-            awayTeam: m.awayTeam.toString().toUpperCase().trim(),
-            homeScore: parseInt(m.homeScore) || 0,
-            awayScore: parseInt(m.awayScore) || 0
-        }));
+        // IMPROVED SANITIZATION
+        // This ensures that even if your scraper/frontend sends 'away' instead of 'awayTeam', it still works.
+        const sanitizedMatches = matchData.map(m => {
+            const hTeam = m.homeTeam || m.home || "UNKNOWN";
+            const aTeam = m.awayTeam || m.away || "UNKNOWN";
+            
+            return {
+                homeTeam: hTeam.toString().toUpperCase().trim(),
+                awayTeam: aTeam.toString().toUpperCase().trim(),
+                homeScore: parseInt(m.homeScore) || 0,
+                awayScore: parseInt(m.awayScore) || 0
+            };
+        });
 
-        // Unique ID ensures we don't double-save the same Week/TRN
-        // Format: league-season-trn-week (e.g., english-2025-101-5)
         const customId = `${batch.league.toLowerCase()}-${batch.season}-${batch.trn}-${batch.week}`;
         
         const updateDoc = {

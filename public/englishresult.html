@@ -230,7 +230,6 @@ async function renderResults(matches, currentContext) {
         let color = "indigo";
 
         for (const record of allData) {
-            // Skip current view
             if (record.season == currentContext.season && record.trn == currentContext.trn && record.week == currentContext.week) continue;
 
             const pastMatches = record.matches || record.allMatches;
@@ -286,11 +285,17 @@ async function renderResults(matches, currentContext) {
         }
     } catch (e) { console.error("Cross-check error:", e); }
 
-    const matchCards = matches.map((match) => `
+    // --- RENDER MATCH CARDS WITH FALLBACKS ---
+    const matchCards = matches.map((match) => {
+        // Fallback logic to find team names even if keys are slightly different
+        const hName = match.homeTeam || match.home || "N/A";
+        const aName = match.awayTeam || match.away || match.visitor || "N/A";
+
+        return `
         <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col items-center transition hover:border-indigo-500/40 hover:bg-slate-800/60">
             <div class="flex items-center justify-between w-full">
                 <div class="flex-1 text-right pr-4">
-                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.homeTeam}</span>
+                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${hName}</span>
                 </div>
                 <div class="bg-slate-950 px-4 py-2 rounded-lg border border-slate-700 flex gap-4 items-center shadow-inner">
                     <span class="text-xl md:text-2xl font-black text-indigo-400">${match.homeScore}</span>
@@ -298,10 +303,11 @@ async function renderResults(matches, currentContext) {
                     <span class="text-xl md:text-2xl font-black text-rose-400">${match.awayScore}</span>
                 </div>
                 <div class="flex-1 text-left pl-4">
-                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${match.awayTeam}</span>
+                    <span class="text-sm md:text-lg font-black tracking-tighter uppercase text-slate-100">${aName}</span>
                 </div>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 
     grid.innerHTML = alertHtml + `<div class="grid gap-3">${matchCards}</div>`;
 }
