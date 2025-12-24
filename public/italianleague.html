@@ -3,23 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Italian Terminal | Soccer Database</title>
+    <title>Italian Terminal | Serie A Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        select option { background: #064e3b; }
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        select option { background: #0f172a; }
+        .modal-animate { transition: all 0.3s ease-out; }
+        input:invalid { border-color: #ef4444; }
     </style>
 </head>
 <body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-emerald-500/30">
+
+    <div id="successModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-emerald-500/30 p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-black text-white uppercase mb-2">Sync Successful</h3>
+            <p id="modalMessage" class="text-slate-400 text-sm mb-6">Italian matches recorded successfully.</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <div id="duplicateModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-emerald-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl">
+            <div class="flex items-center gap-3 mb-4 text-emerald-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 class="text-lg font-black uppercase tracking-tight">Italian Record Found</h3>
+            </div>
+            <div id="duplicateContent" class="space-y-3 mb-6"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeDuplicateModal(true)" class="py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition">
+                    Ignore & Sync
+                </button>
+                <a id="viewRecordBtn" href="italianresult.html" class="py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2">
+                    <span>View Database</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div class="modal-animate scale-95 opacity-0 bg-slate-800 border border-rose-500/50 p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <div class="w-12 h-12 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-black text-white uppercase mb-2">Invalid Data</h3>
+            <p id="errorMessage" class="text-slate-400 text-xs leading-relaxed mb-6"></p>
+            <button onclick="closeErrorModal()" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition">
+                Go Back & Fix
+            </button>
+        </div>
+    </div>
 
     <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <a href="index.html" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
                 </a>
-                <h1 class="text-xl font-black uppercase tracking-tighter text-emerald-500">Italian Terminal</h1>
+                <h1 class="text-xl font-black uppercase tracking-tighter text-white">Italian Terminal</h1>
             </div>
             
             <div class="flex flex-wrap items-center justify-center gap-3">
@@ -27,11 +84,55 @@
                     <a href="englishleague.html" class="px-3 py-1.5 hover:text-indigo-400 transition">English</a>
                     <a href="laligaleague.html" class="px-3 py-1.5 border-l border-white/10 hover:text-amber-400 transition">LaLiga</a>
                 </div>
-                <div class="bg-slate-950 border border-emerald-500/40 rounded-lg px-2 py-1 flex items-center gap-2">
-                    <span class="text-[8px] font-black text-emerald-500 uppercase">TRN</span>
-                    <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-emerald-400 outline-none cursor-pointer">
-                        <script>for (let t = 1; t <= 10000; t++) document.write(`<option value="${t}">${t}</option>`);</script>
+
+                <div class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 flex items-center gap-2">
+                    <span class="text-[8px] font-black text-slate-500 uppercase">Season</span>
+                    <select id="seasonSelect" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer">
+                        <script>
+                            for (let year = 2025; year <= 2060; year++) {
+                                let nextYear = (year + 1).toString().slice(-2);
+                                document.write(`<option value="${year}">${year}/${nextYear}</option>`);
+                            }
+                        </script>
                     </select>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-rose-500/40 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('tournamentSelect', -1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+                        </svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <span class="text-[7px] font-black text-rose-500 uppercase tracking-tighter leading-none">TRN</span>
+                        <select id="tournamentSelect" class="bg-transparent text-xs font-bold text-rose-400 outline-none appearance-none text-center min-w-[40px]">
+                            <script>for (let t = 1; t <= 10000; t++) document.write(`<option value="${t}">${t}</option>`);</script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('tournamentSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex items-center bg-slate-950 border border-emerald-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-emerald-500/20 rounded transition text-emerald-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+                        </svg>
+                    </button>
+                    <div class="flex flex-col items-center px-1">
+                        <span class="text-[7px] font-black text-emerald-500 uppercase leading-none">Week</span>
+                        <select id="weekSelect" class="bg-transparent text-xs font-bold text-emerald-400 outline-none appearance-none text-center min-w-[30px]">
+                            <script>for (let i = 1; i <= 38; i++) document.write(`<option value="${i}">${i}</option>`);</script>
+                        </select>
+                    </div>
+                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-emerald-500/20 rounded transition text-emerald-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -40,26 +141,42 @@
     <main class="max-w-7xl mx-auto p-4 md:p-8">
         <div class="bg-slate-800 shadow-2xl rounded-2xl border border-slate-700 overflow-hidden">
             <form id="matchForm">
+                <input type="hidden" id="leagueId" value="italian">
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse text-center">
+                        <thead>
+                            <tr class="text-[9px] md:text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-700/50">
+                                <th class="py-4 px-2 font-black w-10">#</th>
+                                <th class="py-4 px-2 font-black">Home Team</th>
+                                <th class="py-4 px-2 font-black">Result</th>
+                                <th class="py-4 px-2 font-black">Away Team</th>
+                                <th class="py-4 px-2 font-black text-right pr-4">Status</th>
+                            </tr>
+                        </thead>
                         <tbody class="divide-y divide-slate-700/30">
                             <script>
                                 for (let i = 1; i <= 10; i++) {
                                     document.write(`
-                                        <tr class="group hover:bg-white/[0.02]">
-                                            <td class="py-4 px-2 text-slate-600 font-black text-xs">${i}</td>
-                                            <td class="py-4 px-2"><input list="serie-a-clubs" type="text" placeholder="HOME" class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-3 text-lg font-black text-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none uppercase text-center"></td>
+                                        <tr class="group hover:bg-white/[0.02] transition-colors">
+                                            <td class="py-4 px-2 text-slate-600 font-black text-[10px] md:text-xs">${i}</td>
                                             <td class="py-4 px-2">
-                                                <div class="inline-flex items-center bg-slate-950 p-2 rounded-lg border-b-2 border-emerald-600">
-                                                    <input type="number" value="0" class="w-12 bg-transparent text-center text-2xl font-black outline-none text-white">
-                                                    <span class="text-slate-600 font-bold px-2">-</span>
-                                                    <input type="number" value="0" class="w-12 bg-transparent text-center text-2xl font-black outline-none text-white">
+                                                <input list="italian-clubs" type="text" placeholder="HOME" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-emerald-400 focus:ring-2 focus:ring-emerald-500 outline-none uppercase transition-all text-center">
+                                            </td>
+                                            <td class="py-4 px-2">
+                                                <div class="inline-flex items-center bg-slate-950 p-1 md:p-2 rounded-lg border-b-2 border-emerald-600">
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
+                                                    <span class="text-slate-600 font-bold px-1 md:px-2">-</span>
+                                                    <input type="number" min="0" value="0" class="w-6 md:w-12 bg-transparent text-center text-sm md:text-2xl font-black outline-none text-white">
                                                 </div>
                                             </td>
-                                            <td class="py-4 px-2"><input list="serie-a-clubs" type="text" placeholder="AWAY" class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-3 text-lg font-black text-emerald-200 focus:ring-2 focus:ring-emerald-500 outline-none uppercase text-center"></td>
+                                            <td class="py-4 px-2">
+                                                <input list="italian-clubs" type="text" placeholder="AWAY" 
+                                                    class="w-full max-w-[180px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 md:py-3 text-xs md:text-lg font-black text-rose-400 focus:ring-2 focus:ring-emerald-500 outline-none uppercase transition-all text-center">
+                                            </td>
                                             <td class="py-4 px-2 text-right pr-4">
-                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                                                    <option>FT</option><option>LIVE</option><option>PPD</option>
+                                                <select class="bg-slate-900 border border-slate-700 rounded-md px-1 py-1 md:px-2 md:py-2 text-[8px] md:text-[10px] font-bold text-emerald-500 outline-none uppercase cursor-pointer">
+                                                    <option value="FT">FT</option>
                                                 </select>
                                             </td>
                                         </tr>
@@ -70,53 +187,189 @@
                     </table>
                 </div>
 
-                <div class="p-10 bg-slate-900/30 border-t border-slate-700/50 flex justify-between items-center">
-                    <button type="submit" class="px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all">
-                        Sync Italian TRN
-                    </button>
+                <div class="p-6 md:p-10 bg-slate-900/30 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="text-center md:text-left">
+                        <p class="text-[10px] text-emerald-500 font-black uppercase tracking-[0.2em]">Serie A Indexing Enabled</p>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Database: Italian League Terminal</p>
+                    </div>
+                    <div class="flex-1 flex justify-center">
+                        <a href="italianresult.html" class="px-6 py-3 border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            View All Results
+                        </a>
+                    </div>
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <button type="reset" class="flex-1 md:px-8 py-3 text-slate-500 hover:text-rose-500 font-black text-xs uppercase transition">Clear</button>
+                        <button type="submit" class="flex-1 md:px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
+                            Sync Italian Data
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </main>
 
-    <datalist id="serie-a-clubs">
+    <datalist id="italian-clubs">
+        <option value="ACM">AC Milan</option><option value="ATA">Atalanta</option>
+        <option value="BOL">Bologna</option><option value="CAG">Cagliari</option>
+        <option value="COM">Como</option><option value="EMP">Empoli</option>
+        <option value="FIO">Fiorentina</option><option value="GEN">Genoa</option>
         <option value="INT">Inter Milan</option><option value="JUV">Juventus</option>
-        <option value="MIL">AC Milan</option><option value="NAP">Napoli</option>
-        <option value="ROM">AS Roma</option><option value="LAZ">Lazio</option>
-        <option value="ATA">Atalanta</option><option value="FIO">Fiorentina</option>
+        <option value="LAZ">Lazio</option><option value="LEC">Lecce</option>
+        <option value="MON">Monza</option><option value="NAP">Napoli</option>
+        <option value="PAR">Parma</option><option value="ROM">Roma</option>
+        <option value="TOR">Torino</option><option value="UDI">Udinese</option>
+        <option value="VEN">Venezia</option><option value="VER">Verona</option>
     </datalist>
 
-    <script>
-        // CRITICAL: Set league to "italian" for MongoDB sorting
-        const LEAGUE_ID = "italian";
-        
-        document.getElementById('matchForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const trn = document.getElementById('tournamentSelect').value;
-            const rows = document.querySelectorAll('tbody tr');
-            const matches = Array.from(rows).map((row, i) => {
-                const inputs = row.querySelectorAll('input');
-                return {
-                    league: LEAGUE_ID,
-                    season: "2025", // Simplified for example
-                    trn: trn,
-                    week: "1",
-                    slot: i + 1,
-                    homeTeam: inputs[0].value.trim().toUpperCase(),
-                    homeScore: parseInt(inputs[1].value) || 0,
-                    awayScore: parseInt(inputs[2].value) || 0,
-                    awayTeam: inputs[3].value.trim().toUpperCase(),
-                    status: row.querySelector('select').value
-                };
-            }).filter(m => m.homeTeam && m.awayTeam);
+<script>
+let pendingBatchData = null;
 
-            const response = await fetch('/api/api', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ matches })
-            });
-            if(response.ok) alert("Italian Data Synced!");
+function getFingerprints(matches) {
+    const exact = matches.map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).join('|');
+    const scrambled = [...matches].map(m => `${m.homeTeam.trim().toLowerCase()}:${m.homeScore}-${m.awayScore}:${m.awayTeam.trim().toLowerCase()}`).sort().join('|');
+    const outcome = matches.map(m => `${m.homeScore}-${m.awayScore}`).join('|');
+    const pairingSeq = matches.map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).join('|');
+    const pairingScrambled = [...matches].map(m => `${m.homeTeam.trim().toLowerCase()}v${m.awayTeam.trim().toLowerCase()}`).sort().join('|');
+    return { exact, scrambled, outcome, pairingSeq, pairingScrambled };
+}
+
+function stepValue(id, direction) {
+    const el = document.getElementById(id);
+    const nextIndex = el.selectedIndex + direction;
+    if (nextIndex >= 0 && nextIndex < el.options.length) el.selectedIndex = nextIndex;
+}
+
+function closeModal() {
+    const modal = document.getElementById('successModal');
+    modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+function closeDuplicateModal(proceedWithSync = false) {
+    const modal = document.getElementById('duplicateModal');
+    modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        if (proceedWithSync && pendingBatchData) executeFinalSync(pendingBatchData);
+    }, 300);
+}
+
+function showDuplicateModal(type, pastRecord, batchData) {
+    pendingBatchData = batchData;
+    const modal = document.getElementById('duplicateModal');
+    const content = document.getElementById('duplicateContent');
+    let title = "Duplicate Found", message = "", colorClass = "emerald";
+
+    switch(type) {
+        case 'EXACT': title = "EXACT SEQUENCE MATCH"; message = `Identical to S${pastRecord.season} TRN ${pastRecord.trn} (W${pastRecord.week}).`; break;
+        case 'SCRAMBLED': title = "REARRANGED SEQUENCE"; colorClass = "amber"; message = `Matchups and scores exist in S${pastRecord.season} TRN ${pastRecord.trn} in different order.`; break;
+        case 'OUTCOME': title = "SCORE PATTERN MATCH"; colorClass = "rose"; message = `The scores match S${pastRecord.season} TRN ${pastRecord.trn} exactly.`; break;
+        case 'PAIRING_SEQ': title = "IDENTICAL FIXTURE LIST"; colorClass = "cyan"; message = `Fixtures match S${pastRecord.season} TRN ${pastRecord.trn}.`; break;
+        case 'PAIRING_SCRAMBLED': title = "MATCHUP REPETITION"; colorClass = "emerald"; message = `Same 10 matchups occurred in S${pastRecord.season} TRN ${pastRecord.trn}.`; break;
+    }
+
+    content.innerHTML = `<div class="bg-${colorClass}-500/20 border border-${colorClass}-500/50 p-4 rounded-xl mb-4"><p class="text-${colorClass}-400 text-[10px] font-black uppercase mb-1">⚠️ ${title}</p><p class="text-white text-xs">${message}</p></div>`;
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+async function executeFinalSync(batchData) {
+    const syncBtn = document.querySelector('button[type="submit"]');
+    syncBtn.disabled = true; syncBtn.innerText = "SYNCING...";
+    try {
+        const response = await fetch('/api/api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(batchData)
         });
-    </script>
+        if (response.ok) {
+            const modal = document.getElementById('successModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+            document.getElementById('matchForm').reset();
+        }
+    } catch (e) { alert("Network Error"); } 
+    finally { syncBtn.disabled = false; syncBtn.innerText = "Sync Italian Data"; pendingBatchData = null; }
+}
+
+async function checkHistory(currentMatches) {
+    try {
+        const response = await fetch(`/api/api?league=italian&compact=true&t=${Date.now()}`);
+        if (!response.ok) return null;
+        const allData = await response.json();
+        const currentKeys = getFingerprints(currentMatches);
+        for (let record of allData) {
+            if (!record.matches || record.matches.length !== 10) continue;
+            const pastKeys = getFingerprints(record.matches);
+            if (currentKeys.exact === pastKeys.exact) return { type: 'EXACT', record };
+            if (currentKeys.scrambled === pastKeys.scrambled) return { type: 'SCRAMBLED', record };
+            if (currentKeys.outcome === pastKeys.outcome) return { type: 'OUTCOME', record };
+            if (currentKeys.pairingSeq === pastKeys.pairingSeq) return { type: 'PAIRING_SEQ', record };
+            if (currentKeys.pairingScrambled === pastKeys.pairingScrambled) return { type: 'PAIRING_SCRAMBLED', record };
+        }
+    } catch (e) { return null; }
+    return null;
+}
+
+function showErrorModal(message) {
+    document.getElementById('errorMessage').innerText = message;
+    const modal = document.getElementById('errorModal');
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.querySelector('.modal-animate').classList.remove('scale-95', 'opacity-0'), 10);
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('errorModal');
+    modal.querySelector('.modal-animate').classList.add('scale-95', 'opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+document.getElementById('matchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const rows = document.querySelectorAll('tbody tr');
+    const matchesArray = [];
+    const usedTeams = new Set();
+
+    for (let [index, row] of rows.entries()) {
+        const inputs = row.querySelectorAll('input');
+        const home = inputs[0].value.trim().toUpperCase();
+        const away = inputs[3].value.trim().toUpperCase();
+
+        if (!home || !away) { showErrorModal("Empty fields detected."); return; }
+        if (home === away) { showErrorModal(`Match ${index+1} Error: Same Team.`); return; }
+        if (usedTeams.has(home) || usedTeams.has(away)) { showErrorModal(`Duplicate Team detected.`); return; }
+        usedTeams.add(home); usedTeams.add(away);
+
+        matchesArray.push({
+            slot: index + 1,
+            homeTeam: home,
+            homeScore: parseInt(inputs[1].value) || 0,
+            awayScore: parseInt(inputs[2].value) || 0,
+            awayTeam: away,
+            status: row.querySelector('select').value
+        });
+    }
+
+    const batchData = { 
+        league: "italian", 
+        season: document.getElementById('seasonSelect').value, 
+        trn: document.getElementById('tournamentSelect').value, 
+        week: document.getElementById('weekSelect').value, 
+        matches: matchesArray,
+        timestamp: Date.now() 
+    };
+
+    const syncBtn = e.target.querySelector('button[type="submit"]');
+    syncBtn.innerText = "SCANNING..."; syncBtn.disabled = true;
+    const historyResult = await checkHistory(matchesArray);
+    syncBtn.disabled = false; syncBtn.innerText = "Sync Italian Data";
+
+    if (historyResult) showDuplicateModal(historyResult.type, historyResult.record, batchData);
+    else executeFinalSync(batchData);
+});
+</script>
 </body>
 </html>

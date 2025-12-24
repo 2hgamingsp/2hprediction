@@ -13,16 +13,19 @@ const uri = process.env.MONGODB_URI;
 let cachedClient = null;
 
 async function connectToDatabase() {
-    // Corrected logic: Ensure the client exists AND the connection is still alive
-    if (cachedClient && cachedClient.topology && cachedClient.topology.isConnected()) {
-        return cachedClient;
+    if (cachedClient) {
+        try {
+            // Check if the connection is actually functional
+            await cachedClient.db().command({ ping: 1 });
+            return cachedClient;
+        } catch (e) {
+            console.log("Cached client stale, reconnecting...");
+            cachedClient = null;
+        }
     }
     
-    if (!uri) throw new Error("MONGODB_URI is not defined");
-    
     const client = new MongoClient(uri, { 
-        serverSelectionTimeoutMS: 5000,
-        useUnifiedTopology: true 
+        serverSelectionTimeoutMS: 5000
     });
     
     await client.connect();
@@ -31,11 +34,18 @@ async function connectToDatabase() {
 }
 
 function getCollectionName(league) {
-    if (!league) return "matches"; 
-    const cleanLeague = league.toString().toLowerCase().trim();
-    return `${cleanLeague}_matches`;
-}
+    // Fallback to 'matches' if league is missing, otherwise sanitize
+    const cleanLeague = league ? league.toString().toLowerCase().trim() : "general";
+    
+    // Map specific IDs to clean collection names
+    const leagueMap = {
+        'english': 'english_matches',
+        'laliga': 'laliga_matches',
+        'italian': 'italian_matches'
+    };
 
+    return leagueMap[cleanLeague] || `${cleanLeague}_matches`;
+}
 // --- GET ROUTE ---
 app.get("/api/api", async (req, res) => {
     try {

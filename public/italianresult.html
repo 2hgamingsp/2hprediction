@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Liga Results | Soccer Database</title>
+    <title>Italian Results | Soccer Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes bounce-short {
@@ -15,28 +15,28 @@
         }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen text-slate-100 font-sans selection:bg-amber-500/30">
+<body class="bg-slate-950 min-h-screen text-slate-100 font-sans selection:bg-emerald-500/30">
 
-    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700 p-4">
+    <nav class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-emerald-900/30 p-4">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <a href="laligaleague.html" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
+                <a href="italianleague.html" class="bg-emerald-500/10 hover:bg-emerald-500/20 p-2 rounded-lg transition text-emerald-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
                     </svg>
                 </a>
                 <div>
-                    <h1 class="text-xl font-black uppercase tracking-tighter text-amber-500">La Liga Results</h1>
-                    <p class="text-[8px] font-bold text-slate-500 tracking-[0.3em] uppercase">Historical Spanish Data</p>
+                    <h1 class="text-xl font-black uppercase tracking-tighter text-emerald-400">Italian Results</h1>
+                    <p class="text-[8px] font-bold text-emerald-600/60 tracking-[0.3em] uppercase">Archivio Storico Serie A</p>
                 </div>
             </div>
             
             <div class="flex flex-wrap items-center justify-center gap-2">
-                <div class="bg-slate-950 px-3 py-1 rounded-lg border border-slate-700">
+                <div class="bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
                     <label class="block text-[7px] font-black uppercase text-slate-500 mb-0.5">Season</label>
                     <select id="seasonSelect" onchange="triggerFetch(true)" class="bg-transparent text-white text-xs font-black outline-none cursor-pointer">
                         <script>
@@ -48,15 +48,15 @@
                     </select>
                 </div>
 
-                <div class="flex items-center bg-slate-950 border border-rose-500/30 rounded-lg p-1">
-                    <button type="button" onclick="stepValue('trnSelect', -1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                <div class="flex items-center bg-slate-900 border border-emerald-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('trnSelect', -1)" class="p-1 hover:bg-emerald-500/20 rounded transition text-emerald-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                         </svg>
                     </button>
                     <div class="flex flex-col items-center px-1">
-                        <label class="text-[7px] font-black text-rose-500 uppercase leading-none">TRN</label>
-                        <select id="trnSelect" onchange="triggerFetch(true)" class="bg-transparent text-rose-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[40px]">
+                        <label class="text-[7px] font-black text-emerald-500 uppercase leading-none">TRN</label>
+                        <select id="trnSelect" onchange="triggerFetch(true)" class="bg-transparent text-emerald-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[40px]">
                             <script>
                                 for (let t = 1; t <= 10000; t++) {
                                     document.write(`<option value="${t}" class="bg-slate-900">${t}</option>`);
@@ -64,30 +64,30 @@
                             </script>
                         </select>
                     </div>
-                    <button type="button" onclick="stepValue('trnSelect', 1)" class="p-1 hover:bg-rose-500/20 rounded transition text-rose-500">
+                    <button type="button" onclick="stepValue('trnSelect', 1)" class="p-1 hover:bg-emerald-500/20 rounded transition text-emerald-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 </div>
 
-                <div class="flex items-center bg-slate-950 border border-amber-500/30 rounded-lg p-1">
-                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                <div class="flex items-center bg-slate-900 border border-blue-500/30 rounded-lg p-1">
+                    <button type="button" onclick="stepValue('weekSelect', -1)" class="p-1 hover:bg-blue-500/20 rounded transition text-blue-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                         </svg>
                     </button>
                     <div class="flex flex-col items-center px-1">
-                        <label class="text-[7px] font-black text-amber-500 uppercase leading-none">Week</label>
-                        <select id="weekSelect" onchange="triggerFetch(true)" class="bg-transparent text-amber-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[50px]">
+                        <label class="text-[7px] font-black text-blue-500 uppercase leading-none">Week</label>
+                        <select id="weekSelect" onchange="triggerFetch(true)" class="bg-transparent text-blue-400 text-xs font-black outline-none cursor-pointer appearance-none text-center min-w-[50px]">
                             <script>
-                                for (let i = 1; i <= 36; i++) {
+                                for (let i = 1; i <= 38; i++) {
                                     document.write(`<option value="${i}" class="bg-slate-900">W${i}</option>`);
                                 }
                             </script>
                         </select>
                     </div>
-                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-amber-500/20 rounded transition text-amber-500">
+                    <button type="button" onclick="stepValue('weekSelect', 1)" class="p-1 hover:bg-blue-500/20 rounded transition text-blue-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                         </svg>
@@ -98,14 +98,11 @@
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 md:p-8">
-        <div id="alertContainer" class="sticky top-24 z-40 mb-8"></div>
-
         <div id="resultsWrapper">
             <div id="loadingState" class="text-center py-20">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500 mb-4"></div>
-                <p class="text-slate-500 font-black text-xs uppercase tracking-widest">Accessing La Liga Archives...</p>
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
+                <p class="text-slate-500 font-black text-xs uppercase tracking-widest">Accessing Italian Database...</p>
             </div>
-
             <div id="timelineContainer" class="space-y-12"></div>
         </div>
     </main>
@@ -120,8 +117,8 @@ function formatDateTime(record) {
     const d = new Date(rawTime);
     if (isNaN(d.getTime())) return { date: 'N/A', time: '' };
     return {
-        date: d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        date: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        time: d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
     };
 }
 
@@ -149,7 +146,6 @@ function getFingerprints(matches) {
 async function triggerFetch(shouldScroll = false) {
     const loader = document.getElementById('loadingState');
     const container = document.getElementById('timelineContainer');
-    
     const selSeason = document.getElementById('seasonSelect').value;
     const selTrn = document.getElementById('trnSelect').value;
     const selWeek = document.getElementById('weekSelect').value;
@@ -157,8 +153,8 @@ async function triggerFetch(shouldScroll = false) {
     try {
         if (allFetchedData.length === 0) {
             loader.classList.remove('hidden');
-            // MODIFIED: Added league=laliga parameter
-            const res = await fetch(`/api/api?league=laliga&compact=true&limit=1000`);
+            // UPDATED ENDPOINT FOR ITALIAN LEAGUE
+            const res = await fetch(`/api/api?league=italian&compact=true&limit=1000`);
             allFetchedData = await res.json();
             
             allFetchedData.sort((a, b) => {
@@ -178,12 +174,12 @@ async function triggerFetch(shouldScroll = false) {
                 
                 const pastKeys = getFingerprints(other.matches);
                 let matchType = "";
-                let color = "amber";
+                let color = "emerald";
 
-                if (currentKeys.exact === pastKeys.exact) { matchType = "EXACT SEQUENCE MATCH"; color = "amber"; }
-                else if (currentKeys.scrambled === pastKeys.scrambled) { matchType = "REARRANGED SEQUENCE"; color = "orange"; }
-                else if (currentKeys.pairingSeq === pastKeys.pairingSeq) { matchType = "IDENTICAL FIXTURE LIST"; color = "cyan"; }
-                else if (currentKeys.outcome === pastKeys.outcome) { matchType = "SCORE PATTERN MATCH"; color = "rose"; }
+                if (currentKeys.exact === pastKeys.exact) { matchType = "SEQUENZA ESATTA"; color = "emerald"; }
+                else if (currentKeys.scrambled === pastKeys.scrambled) { matchType = "SEQUENZA DISORDINATA"; color = "amber"; }
+                else if (currentKeys.pairingSeq === pastKeys.pairingSeq) { matchType = "FIXTURE IDENTICI"; color = "blue"; }
+                else if (currentKeys.outcome === pastKeys.outcome) { matchType = "MODELLO RISULTATO"; color = "rose"; }
 
                 if (matchType) foundDuplicates.push({ ...other, matchType, color });
             });
@@ -198,10 +194,8 @@ async function triggerFetch(shouldScroll = false) {
 
         loader.classList.add('hidden');
         if (shouldScroll) scrollToRecord(selSeason, selTrn, selWeek);
-
     } catch (e) {
-        console.error("Fetch Error:", e);
-        loader.innerHTML = `<p class="text-rose-500 font-bold uppercase text-xs">Error Connecting to La Liga DB</p>`;
+        loader.innerHTML = `<p class="text-rose-500 font-bold uppercase text-xs">Errore di Connessione</p>`;
     }
 }
 
@@ -211,21 +205,19 @@ function jumpToDuplicate(selectElement) {
 }
 
 function generateWeekBlock(record, isHighlighted, duplicateInfo) {
-    let borderClass = isHighlighted ? 'border-amber-500 shadow-[0_0_40px_rgba(245,158,11,0.3)]' : 'border-slate-800';
-    let bgClass = isHighlighted ? 'bg-slate-800/90' : 'bg-slate-800/30';
-    
-    if (duplicateInfo) borderClass = `border-${duplicateInfo.color}-500 shadow-[0_0_20px_rgba(0,0,0,0.2)]`;
+    let borderClass = isHighlighted ? 'border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.2)]' : 'border-slate-800';
+    let bgClass = isHighlighted ? 'bg-slate-900/90' : 'bg-slate-900/30';
+    if (duplicateInfo) borderClass = `border-${duplicateInfo.color}-500`;
 
     const displayId = record._id ? record._id.slice(-8).toUpperCase() : 'SYNCED';
     const timeInfo = formatDateTime(record);
-
     const matchCards = record.matches.map(m => `
-        <div class="bg-slate-950/40 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between">
+        <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
             <div class="flex-1 text-right pr-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.homeTeam}</span></div>
             <div class="bg-slate-900 px-3 py-1 rounded border border-slate-700 flex gap-3 font-black text-sm">
-                <span class="text-amber-400">${m.homeScore}</span>
-                <span class="text-slate-600 text-[8px] self-center">VS</span>
-                <span class="text-rose-400">${m.awayScore}</span>
+                <span class="text-emerald-400">${m.homeScore}</span>
+                <span class="text-slate-600 text-[8px] self-center">-</span>
+                <span class="text-emerald-400">${m.awayScore}</span>
             </div>
             <div class="flex-1 text-left pl-3"><span class="text-[11px] font-black uppercase text-slate-100">${m.awayTeam}</span></div>
         </div>
@@ -233,42 +225,37 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
 
     const dropdownOptions = foundDuplicates.map(d => {
         const isThisOne = (d.season == record.season && d.trn == record.trn && d.week == record.week);
-        return `<option value="${d.season}|${d.trn}|${d.week}" ${isThisOne ? 'selected' : ''} class="bg-slate-900 text-white">S${d.season} • T${d.trn} • W${d.week}</option>`;
+        return `<option value="${d.season}|${d.trn}|${d.week}" ${isThisOne ? 'selected' : ''} class="bg-slate-900">S${d.season} • T${d.trn} • W${d.week}</option>`;
     }).join('');
 
     const duplicateBanner = duplicateInfo ? `
-        <div class="mb-5 bg-${duplicateInfo.color}-600 border-l-4 border-${duplicateInfo.color}-400 p-4 rounded-2xl shadow-xl relative overflow-hidden">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+        <div class="mb-5 bg-${duplicateInfo.color}-600/20 border border-${duplicateInfo.color}-500/50 p-4 rounded-2xl">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-md">
-                         <span class="text-white font-black text-xs">MATCH</span>
-                    </div>
+                    <span class="bg-${duplicateInfo.color}-500 text-white text-[8px] font-black px-2 py-1 rounded">MATCH</span>
                     <div>
-                        <h3 class="text-white text-[11px] font-black uppercase tracking-tighter">${duplicateInfo.matchType}</h3>
-                        <p class="text-white/80 text-[8px] font-bold uppercase tracking-widest">Historical Link Found</p>
+                        <h3 class="text-white text-[10px] font-black uppercase">${duplicateInfo.matchType}</h3>
+                        <p class="text-slate-400 text-[8px] uppercase">Found in Season ${record.season} Week ${record.week}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 bg-black/30 p-1.5 rounded-xl border border-white/20">
-                    <select onchange="jumpToDuplicate(this)" class="bg-transparent text-white text-[10px] font-black outline-none cursor-pointer pr-2">
-                        <option disabled selected>View Linked Record</option>
-                        ${dropdownOptions}
-                    </select>
-                </div>
+                <select onchange="jumpToDuplicate(this)" class="bg-slate-900 text-white text-[10px] font-black p-1 rounded border border-slate-700">
+                    <option disabled selected>Vedi Storico</option>
+                    ${dropdownOptions}
+                </select>
             </div>
         </div>
     ` : '';
 
     return `
-        <div id="week-${record.season}-${record.trn}-${record.week}" class="p-6 rounded-3xl border-2 ${borderClass} ${bgClass} transition-all duration-500 relative">
+        <div id="week-${record.season}-${record.trn}-${record.week}" class="p-6 rounded-3xl border-2 ${borderClass} ${bgClass} transition-all relative">
             ${duplicateBanner}
-            ${isHighlighted ? '<div class="absolute -top-3 left-6 bg-amber-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-xl z-20 animate-pulse">Viewing Entry</div>' : ''}
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-lg font-black text-amber-500 uppercase tracking-tighter leading-none">Season ${record.season} • T${record.trn} • W${record.week}</h2>
+                    <h2 class="text-lg font-black text-emerald-400 uppercase tracking-tighter">S${record.season} • T${record.trn} • W${record.week}</h2>
                 </div>
                 <div class="text-right">
-                    <span class="text-[7px] text-slate-500 block uppercase font-black">Synced: ${timeInfo.date}</span>
-                    <span class="text-[9px] text-slate-400 font-mono font-bold">LALIGA-${displayId}</span>
+                    <span class="text-[7px] text-slate-500 block uppercase font-black">Data: ${timeInfo.date}</span>
+                    <span class="text-[9px] text-slate-400 font-mono">ID: ${displayId}</span>
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -282,8 +269,8 @@ function scrollToRecord(s, t, w) {
     const targetEl = document.getElementById(targetId);
     if (targetEl) {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetEl.classList.add('ring-4', 'ring-amber-500/50');
-        setTimeout(() => targetEl.classList.remove('ring-4', 'ring-amber-500/50'), 2000);
+        targetEl.classList.add('ring-2', 'ring-emerald-500');
+        setTimeout(() => targetEl.classList.remove('ring-2', 'ring-emerald-500'), 2000);
     }
 }
 
