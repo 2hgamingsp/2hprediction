@@ -111,8 +111,10 @@
     </main>
 
 <script>
+// --- Replace your existing <script> section with this updated logic ---
+
 let allFetchedData = [];
-let foundDuplicates = []; // Global list of duplicates for navigation
+let foundDuplicates = []; 
 let currentDuplicateIndex = 0;
 
 function stepValue(id, direction) {
@@ -159,9 +161,7 @@ async function triggerFetch(shouldScroll = false) {
 
         const currentRecord = allFetchedData.find(r => r.season == selSeason && r.trn == selTrn && r.week == selWeek);
         foundDuplicates = [];
-        currentDuplicateIndex = 0;
 
-        // 1. First pass: Find all duplicates globally to enable navigation
         if (currentRecord) {
             const currentKeys = getFingerprints(currentRecord.matches);
             allFetchedData.forEach(other => {
@@ -180,14 +180,10 @@ async function triggerFetch(shouldScroll = false) {
             });
         }
 
-        // 2. Second pass: Generate the UI
         container.innerHTML = ''; 
         allFetchedData.forEach(record => {
             const isSelected = record.season == selSeason && record.trn == selTrn && record.week == selWeek;
-            
-            // Check if THIS specific record is a duplicate of the selection
             const duplicateEntry = foundDuplicates.find(d => d.season == record.season && d.trn == record.trn && d.week == record.week);
-            
             container.insertAdjacentHTML('beforeend', generateWeekBlock(record, isSelected, duplicateEntry));
         });
 
@@ -200,11 +196,12 @@ async function triggerFetch(shouldScroll = false) {
     }
 }
 
-function changeDuplicate(dir) {
-    if (foundDuplicates.length === 0) return;
-    currentDuplicateIndex = (currentDuplicateIndex + dir + foundDuplicates.length) % foundDuplicates.length;
-    const target = foundDuplicates[currentDuplicateIndex];
-    scrollToRecord(target.season, target.trn, target.week);
+// Function to handle the Jump To selection from the banner dropdown
+function jumpToDuplicate(selectElement) {
+    const val = selectElement.value.split('|');
+    if (val.length === 3) {
+        scrollToRecord(val[0], val[1], val[2]);
+    }
 }
 
 function generateWeekBlock(record, isHighlighted, duplicateInfo) {
@@ -216,8 +213,6 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
     }
 
     const displayId = record._id ? record._id.slice(-8).toUpperCase() : 'SYNCED';
-    
-    // Formatting date/time from the record
     const recordDate = record.deviceTime ? new Date(record.deviceTime).toLocaleDateString() : 'N/A';
     const recordTime = record.deviceTime ? new Date(record.deviceTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
 
@@ -233,14 +228,14 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
         </div>
     `).join('');
 
-    // RICH DUPLICATE BANNER (Includes Nav, S/T/W, and DateTime)
+    // Generate Dropdown Options for the Banner
+    const dropdownOptions = foundDuplicates.map(d => {
+        const isThisOne = (d.season == record.season && d.trn == record.trn && d.week == record.week);
+        return `<option value="${d.season}|${d.trn}|${d.week}" ${isThisOne ? 'selected' : ''} class="bg-slate-900 text-white">S${d.season} • T${d.trn} • W${d.week}</option>`;
+    }).join('');
+
     const duplicateBanner = duplicateInfo ? `
         <div class="mb-5 bg-${duplicateInfo.color}-600 border-l-4 border-${duplicateInfo.color}-400 p-4 rounded-2xl shadow-xl relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-            </div>
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
                 <div class="flex items-center gap-3">
                     <div class="bg-white/20 p-2 rounded-lg backdrop-blur-md">
@@ -257,16 +252,11 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-2 bg-black/20 p-1 rounded-xl border border-white/10">
-                    <button onclick="changeDuplicate(-1)" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7" /></svg>
-                    </button>
-                    <div class="px-2 border-x border-white/10 text-[9px] font-black text-white tabular-nums">
-                        ${foundDuplicates.indexOf(duplicateInfo) + 1} / ${foundDuplicates.length}
-                    </div>
-                    <button onclick="changeDuplicate(1)" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
-                    </button>
+                <div class="flex items-center gap-2 bg-black/30 p-1.5 rounded-xl border border-white/20 hover:border-white/40 transition">
+                    <label class="text-[7px] font-black text-white/50 uppercase px-2">Go To:</label>
+                    <select onchange="jumpToDuplicate(this)" class="bg-transparent text-white text-[10px] font-black outline-none cursor-pointer pr-2">
+                        ${dropdownOptions}
+                    </select>
                 </div>
             </div>
         </div>
