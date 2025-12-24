@@ -111,11 +111,23 @@
     </main>
 
 <script>
-// --- Replace your existing <script> section with this updated logic ---
-
 let allFetchedData = [];
 let foundDuplicates = []; 
 let currentDuplicateIndex = 0;
+
+// Helper to format Date safely
+function formatDateTime(record) {
+    const rawTime = record.deviceTime || record.serverTime;
+    if (!rawTime) return { date: 'N/A', time: '' };
+    
+    const d = new Date(rawTime);
+    if (isNaN(d.getTime())) return { date: 'N/A', time: '' };
+
+    return {
+        date: d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+}
 
 function stepValue(id, direction) {
     const el = document.getElementById(id);
@@ -196,7 +208,6 @@ async function triggerFetch(shouldScroll = false) {
     }
 }
 
-// Function to handle the Jump To selection from the banner dropdown
 function jumpToDuplicate(selectElement) {
     const val = selectElement.value.split('|');
     if (val.length === 3) {
@@ -213,8 +224,7 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
     }
 
     const displayId = record._id ? record._id.slice(-8).toUpperCase() : 'SYNCED';
-    const recordDate = record.deviceTime ? new Date(record.deviceTime).toLocaleDateString() : 'N/A';
-    const recordTime = record.deviceTime ? new Date(record.deviceTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+    const timeInfo = formatDateTime(record);
 
     const matchCards = record.matches.map(m => `
         <div class="bg-slate-950/40 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between">
@@ -228,7 +238,6 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
         </div>
     `).join('');
 
-    // Generate Dropdown Options for the Banner
     const dropdownOptions = foundDuplicates.map(d => {
         const isThisOne = (d.season == record.season && d.trn == record.trn && d.week == record.week);
         return `<option value="${d.season}|${d.trn}|${d.week}" ${isThisOne ? 'selected' : ''} class="bg-slate-900 text-white">S${d.season} • T${d.trn} • W${d.week}</option>`;
@@ -246,8 +255,8 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
                         <p class="text-white/80 text-[8px] font-bold uppercase tracking-widest">
                             Found in: S${record.season} • TRN ${record.trn} • W${record.week} 
                         </p>
-                        <p class="text-white/60 text-[7px] font-bold uppercase mt-0.5 italic">
-                            Recorded: ${recordDate} ${recordTime}
+                        <p class="text-white/90 text-[7px] font-black uppercase mt-0.5 italic">
+                            Recorded: ${timeInfo.date} at ${timeInfo.time}
                         </p>
                     </div>
                 </div>
@@ -255,6 +264,7 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
                 <div class="flex items-center gap-2 bg-black/30 p-1.5 rounded-xl border border-white/20 hover:border-white/40 transition">
                     <label class="text-[7px] font-black text-white/50 uppercase px-2">Go To:</label>
                     <select onchange="jumpToDuplicate(this)" class="bg-transparent text-white text-[10px] font-black outline-none cursor-pointer pr-2">
+                        <option disabled selected>Select Historical Match</option>
                         ${dropdownOptions}
                     </select>
                 </div>
@@ -273,8 +283,8 @@ function generateWeekBlock(record, isHighlighted, duplicateInfo) {
                     <h2 class="text-lg font-black text-indigo-400 uppercase tracking-tighter leading-none">S${record.season} • TRN ${record.trn} • W${record.week}</h2>
                 </div>
                 <div class="text-right">
-                    <span class="text-[7px] text-slate-500 block uppercase font-black">Sync Hash</span>
-                    <span class="text-[9px] text-slate-400 font-mono font-bold">${displayId}</span>
+                    <span class="text-[7px] text-slate-500 block uppercase font-black">Recorded: ${timeInfo.date} ${timeInfo.time}</span>
+                    <span class="text-[9px] text-slate-400 font-mono font-bold">HASH: ${displayId}</span>
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
