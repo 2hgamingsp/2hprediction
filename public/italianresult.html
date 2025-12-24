@@ -112,16 +112,31 @@ let allFetchedData = [];
 let foundDuplicates = []; 
 
 function formatDateTime(record) {
-    const rawTime = record.deviceTime || record.serverTime;
-    if (!rawTime) return { date: 'N/A', time: '' };
+    // Check for any available timestamp property
+    const rawTime = record.deviceTime || record.serverTime || record.deviceTimestamp;
+    
+    if (!rawTime) return { date: 'N/A', time: '--:--' };
+    
     const d = new Date(rawTime);
-    if (isNaN(d.getTime())) return { date: 'N/A', time: '' };
+    
+    // Check if the date object is valid
+    if (isNaN(d.getTime())) return { date: 'N/A', time: '--:--' };
+
     return {
-        date: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        time: d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        // Standard Italian Date: DD/MM/YYYY
+        date: d.toLocaleDateString('it-IT', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric' 
+        }),
+        // Forced 24-hour time to ensure visibility
+        time: d.toLocaleTimeString('it-IT', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+        })
     };
 }
-
 function stepValue(id, direction) {
     const el = document.getElementById(id);
     const nextIndex = el.selectedIndex + direction;
